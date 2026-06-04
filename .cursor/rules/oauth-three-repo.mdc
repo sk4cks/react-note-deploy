@@ -1,0 +1,128 @@
+---
+description: react-note-deploy (GitOps / EC2 k3s) — 현재 배포 환경
+alwaysApply: true
+---
+
+# react-note-deploy
+
+GitOps·EC2·k3s 전용. 앱 소스는 sibling repo.
+
+## 형제 repo
+- `/Users/sk4cks/code/react-note` — 프론트 :8080 + Dockerfile
+- `/Users/sk4cks/code/react-note-api` — BFF :8082 + Dockerfile
+- `/Users/sk4cks/code/spring-authorization-server` — Auth :9000 `/authorization-api` + Dockerfile
+- **이 repo** — `k8s/`, Argo CD, Jenkins 예시, `scripts/install-k3s.sh`
+
+## 현재 EC2 환경 (2026-06 배포 완료)
+
+| 항목 | 값 |
+|------|-----|
+| 인스턴스 | `mini_kube` (`i-0e954e6312c87bb24`) |
+| 리전 | `ap-southeast-2` (Sydney) |
+| OS | Ubuntu **24.04 noble** (t3.large) |
+| 퍼블릭 IP | `15.135.200.232` |
+| SSH | `ubuntu@15.135.200.232` (키페어 `mini_kube.pem`) |
+| IAM role | `ec2-k3s-ecr-read` (`AmazonEC2ContainerRegistryReadOnly`) |
+| k3s | 설치됨. `sudo k3s kubectl` |
+
+## ECR
+
+- 계정 ID: `019511184889`
+- 레지스트리: `019511184889.dkr.ecr.ap-southeast-2.amazonaws.com`
+- 저장소: `react-note`, `react-note-api`, `auth-server` (태그 `:latest`)
+
+맥에서 push 시:
+- IAM **사용자** Access Key + `aws configure` 필요 (EC2 role과 별개)
+- Apple Silicon → **`docker build --platform linux/amd64`** 필수
+
+## 접속 URL (도메인 없음, nip.io)
+
+| 서비스 | URL |
+|--------|-----|
+| 프론트 | `http://app.15.135.200.232.nip.io` |
+| API | `http://api.15.135.200.232.nip.io` |
+| Auth | `http://auth.15.135.200.232.nip.io/authorization-api` |
+
+Ingress host·auth issuer·프론트 build-arg를 위 nip.io에 맞춤.
+
+## k8s (`k8s/`)
+
+- namespace: `note`
+- apply: `sudo k3s kubectl apply -f k8s/`
+- API ConfigMap: **클러스터 내부** auth URL 사용 (HTTPS 불필요)
+  - `http://auth-server.note.svc.cluster.local:9000/authorization-api`
+- auth-server issuer env: `http://auth.15.135.200.232.nip.io`
+
+## k3s + ECR (중요 — 트러블슈팅)
+
+IAM role만으로 ECR pull **자동 안 됨**. role 붙인 뒤:
+
+```bash
+# Ubuntu 24.04: apt awscli 불가 → AWS CLI v2 공식 설치
+TOKEN=$(aws ecr get-login-password --region ap-southeast-2)
+sudo tee /etc/rancher/k3s/registries.yaml <<EOF
+configs:
+  "019511184889.dkr.ecr.ap-southeast-2.amazonaws.com":
+    auth:
+      username: AWS
+      password: ${TOKEN}
+EOF
+sudo systemctl restart k3s
+```
+
+- ECR 토큰 **12시간 만료** → 재실행 또는 cron
+- IAM role 확인 (IMDSv2):
+  ```bash
+  TOKEN=$(curl -sf -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
+  curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/iam/security-credentials/
+  ```
+- `ImagePullBackOff` + `no basic auth credentials` → 위 registries.yaml
+
+## react-note-api k8s 프로필 버그 (수정됨)
+
+`application-k8s.yml`에 `spring:` 키 **중복** 시 `DuplicateKeyException`으로 CrashLoop.
+→ 하나로 merge 완료. API 이미지 **재빌드·push** 필요.
+
+## 프론트 Docker build (지금 단계)
+
+로컬 로그인만: **`VITE_BASE_API_URL`만** 필수.
+
+```bash
+docker build --platform linux/amd64 \
+  --build-arg VITE_BASE_API_URL=http://api.15.135.200.232.nip.io \
+  -t $ECR/react-note:latest .
+```
+
+SNS OAuth URL·redirect·Auth Server redirectUri → **나중** (도메인/HTTPS 때).
+
+## 보안 그룹
+
+인바운드: **22**, **80**, **443**
+
+## HTTPS (적용됨)
+
+- EIP `13.239.220.205`, `ingress-https.yaml`, `letsencrypt-prod`
+- URL: `https://app.13.239.220.205.nip.io` 등
+- 인증서: cert-manager **자동 갱신**
+
+## ECR cron (운영)
+
+- `scripts/ecr-registries-renew.sh` + `install-ecr-cron.sh`
+- 6시간마다 registries.yaml + k3s restart (`docs/OPS-운영-안정화.md`)
+
+## 아직 안 함
+
+- Route53 / 실제 도메인 (Cloudflare 예정)
+- Argo CD sync (`argocd/application.yaml` repoURL)
+- Jenkins (`jenkins/Jenkinsfile.api.example`)
+- SNS OAuth nip.io redirect Auth Server 등록
+
+## 로컬 dev vs EC2
+
+- 로컬: localhost 8080/8082/9000 — 각 소스 repo `.env`
+- EC2: 이 repo `k8s/` + 위 nip.io
+
+## 작업
+
+- 최소 diff, 커밋은 사용자 요청 시만
+- `.pem`, Access Key Secret은 rules/커밋에 넣지 않음

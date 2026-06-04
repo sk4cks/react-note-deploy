@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: react-note-api-config
+  namespace: note
+data:
+  AUTH_SERVER_BASE_URL: "http://auth-server.note.svc.cluster.local:9000/authorization-api"
+  AUTH_SERVER_TOKEN_URI: "http://auth-server.note.svc.cluster.local:9000/authorization-api/oauth2/token"
+  JWK_SET_URI: "http://auth-server.note.svc.cluster.local:9000/authorization-api/oauth2/jwks"

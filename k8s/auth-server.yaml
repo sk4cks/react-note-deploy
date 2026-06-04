@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auth-server
+  namespace: note
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auth-server
+  template:
+    metadata:
+      labels:
+        app: auth-server
+    spec:
+      containers:
+        - name: auth-server
+          image: 019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/auth-server:latest
+          ports:
+            - containerPort: 9000
+          env:
+            - name: SERVER_PORT
+              value: "9000"
+            - name: SERVER_SERVLET_CONTEXT_PATH
+              value: "/authorization-api"
+            - name: SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER
+              value: "https://auth.13.239.220.205.nip.io"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: auth-server
+  namespace: note
+spec:
+  selector:
+    app: auth-server
+  ports:
+    - port: 9000
+      targetPort: 9000

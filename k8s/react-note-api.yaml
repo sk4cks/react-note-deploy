@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: react-note-api
+  namespace: note
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: react-note-api
+  template:
+    metadata:
+      labels:
+        app: react-note-api
+    spec:
+      containers:
+        - name: react-note-api
+          image: 019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/react-note-api:latest
+          ports:
+            - containerPort: 8082
+          envFrom:
+            - configMapRef:
+                name: react-note-api-config
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: react-note-api
+  namespace: note
+spec:
+  selector:
+    app: react-note-api
+  ports:
+    - port: 8082
+      targetPort: 8082
