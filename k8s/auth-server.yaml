@@ -25,6 +25,16 @@ spec:
               value: "/authorization-api"
             - name: SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER
               value: "https://auth.13.239.220.205.nip.io"
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-google
+                  key: client-id
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-google
+                  key: client-secret
 ---
 apiVersion: v1
 kind: Service
