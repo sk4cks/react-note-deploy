@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: auth-server
-          image: 019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/auth-server:2
+          image: 019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/auth-server:3
           ports:
             - containerPort: 9000
           env:
