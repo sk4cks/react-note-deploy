@@ -35,6 +35,26 @@ spec:
                 secretKeyRef:
                   name: auth-server-google
                   key: client-secret
+            - name: KAKAO_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-kakao
+                  key: client-id
+            - name: KAKAO_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-kakao
+                  key: client-secret
+            - name: NAVER_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-naver
+                  key: client-id
+            - name: NAVER_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-naver
+                  key: client-secret
 ---
 apiVersion: v1
 kind: Service

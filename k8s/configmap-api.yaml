@@ -4,6 +4,6 @@ metadata:
   name: react-note-api-config
   namespace: note
 data:
+  # base-url: BFF→Auth 서버 간 / public-url: 브라우저·Google redirect
   AUTH_SERVER_BASE_URL: "http://auth-server.note.svc.cluster.local:9000/authorization-api"
-  AUTH_SERVER_TOKEN_URI: "http://auth-server.note.svc.cluster.local:9000/authorization-api/oauth2/token"
-  JWK_SET_URI: "http://auth-server.note.svc.cluster.local:9000/authorization-api/oauth2/jwks"
+  AUTH_SERVER_PUBLIC_URL: "https://auth.13.239.220.205.nip.io/authorization-api"
