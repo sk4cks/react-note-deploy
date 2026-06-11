@@ -4,7 +4,12 @@
 set -euo pipefail
 
 CONFIG="${CONFIG:-/etc/default/k3s-ecr-renew}"
+# systemd Environment=RESTART_K3S=false 가 config 파일에 덮이지 않도록
+RESTART_K3S_FROM_ENV="${RESTART_K3S-}"
 [[ -f "$CONFIG" ]] && source "$CONFIG"
+if [[ -n "$RESTART_K3S_FROM_ENV" ]]; then
+  RESTART_K3S="$RESTART_K3S_FROM_ENV"
+fi
 
 : "${AWS_REGION:=ap-southeast-2}"
 : "${ECR_REGISTRY:=019511184889.dkr.ecr.ap-southeast-2.amazonaws.com}"

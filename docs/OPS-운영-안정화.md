@@ -17,7 +17,7 @@ ECR 토큰은 **12시간** 만료 → `ImagePullBackOff` 방지.
 
 ```bash
 # 맥에서 scripts 복사
-scp -i mini_kube.pem -r /Users/sk4cks/code/react-note-deploy/scripts ubuntu@13.239.220.205:~
+scp -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem -r /Users/sk4cks/code/react-note-deploy/scripts ubuntu@13.239.220.205:~
 
 # EC2
 cd ~/scripts
@@ -42,6 +42,18 @@ AWS_REGION=ap-southeast-2
 ECR_REGISTRY=019511184889.dkr.ecr.ap-southeast-2.amazonaws.com
 RESTART_K3S=true   # false면 yaml만 갱신 (k3s는 재시작 안 함)
 ```
+
+### 부팅 시 자동 갱신 (Stop→Start 후)
+
+cron은 **인스턴스가 꺼져 있으면 실행 안 됨**. 재시작 직후 `ErrImagePull` 방지:
+
+```bash
+sudo bash ~/scripts/install-ecr-boot-service.sh
+systemctl status k3s-ecr-renew-onboot
+tail -10 /var/log/k3s-ecr-renew-onboot.log
+```
+
+부팅 순서: `network` → **ECR 토큰 갱신** → `k3s` 시작 (`RESTART_K3S=false`)
 
 ### cron 확인/제거
 
@@ -114,10 +126,36 @@ git push -u origin main
 
 ---
 
-## 5. EC2 중지/시작 후 빠른 점검
+## 5. EC2 Stop/Start 후 k3s 자동 복구
+
+**증상:** `systemctl status k3s` → inactive, `containerd-shim remains running after unit stopped`
+
+**수동 복구:**
+```bash
+sudo systemctl stop k3s
+sudo /usr/local/bin/k3s-killall.sh
+sudo systemctl start k3s
+```
+
+**자동화 (1회 설치):**
+```bash
+cd react-note-deploy/scripts
+sudo bash install-k3s-boot-recovery.sh
+```
+
+부팅 순서: `network` → `note-boot-k3s-cleanup` → `note-boot-ecr-renew` → `k3s`
+
+> **주의:** unit 이름을 `k3s-`로 시작하면 `k3s-killall`이 cleanup·ECR 서비스까지 stop 함.
+
+```bash
+systemctl status note-boot-k3s-cleanup note-boot-ecr-renew
+tail -20 /var/log/note-boot-k3s-cleanup.log
+```
+
+## 6. EC2 중지/시작 후 빠른 점검
 
 1. Elastic IP still attached?
-2. `sudo /usr/local/bin/ecr-registries-renew.sh`
+2. `systemctl is-active k3s` (자동 복구 설치 시 cleanup 로그 확인)
 3. `sudo k3s kubectl get pods -n note`
 4. `sudo k3s kubectl get certificate -n note`
 5. https://app.13.239.220.205.nip.io

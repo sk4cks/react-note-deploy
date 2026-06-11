@@ -83,10 +83,10 @@ docker push ...
 
 | 설정                                   | 예시                                                       |
 | ------------------------------------ | -------------------------------------------------------- |
-| 프론트 build-arg `VITE_BASE_API_URL`    | `https://api.YOUR_DOMAIN`                                |
-| API ConfigMap `AUTH_SERVER_BASE_URL` | `https://auth.YOUR_DOMAIN/authorization-api`             |
-| API `JWK_SET_URI`                    | `https://auth.YOUR_DOMAIN/authorization-api/oauth2/jwks` |
-| Auth issuer                          | `https://auth.YOUR_DOMAIN`                               |
+| 프론트 build-arg `VITE_BASE_API_URL`       | `https://api.YOUR_DOMAIN` |
+| API ConfigMap `AUTH_SERVER_BASE_URL` | `http://auth-server.note.svc.cluster.local:9000/authorization-api` |
+| API ConfigMap `AUTH_SERVER_PUBLIC_URL` | `https://auth.YOUR_DOMAIN/authorization-api` |
+| Auth issuer                             | `https://auth.YOUR_DOMAIN` |
 | redirect                             | `https://app.YOUR_DOMAIN/oauth/callback`                 |
 
 

@@ -1,4 +1,4 @@
-// react-note repo 루트에 Jenkinsfile 로 복사
+// spring-authorization-server repo 루트에 Jenkinsfile 로 복사
 pipeline {
   agent any
   options {
@@ -6,25 +6,25 @@ pipeline {
   }
   environment {
     AWS_REGION = 'ap-southeast-2'
-    ECR_URI = '019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/react-note'
+    ECR_URI = '019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/auth-server'
     GITOPS_REPO = 'https://github.com/sk4cks/react-note-deploy.git'
-    GITOPS_MANIFEST = 'react-note'
-    VITE_BASE_API_URL = 'https://api.13.239.220.205.nip.io'
-    VITE_OAUTH_REDIRECT_URI = 'https://app.13.239.220.205.nip.io/oauth/callback'
+    GITOPS_MANIFEST = 'auth-server'
   }
   stages {
     stage('Checkout') {
       steps { checkout scm }
     }
-    stage('Docker Build & Push') {
+    stage('Build JAR') {
+      steps {
+        sh 'chmod +x gradlew && ./gradlew bootJar -x test'
+      }
+    }
+    stage('Docker Push') {
       steps {
         sh '''
           apt-get update -qq && apt-get install -y -qq awscli docker.io >/dev/null 2>&1 || true
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${ECR_URI%/*}
-          docker build --platform linux/amd64 \
-            --build-arg VITE_BASE_API_URL=$VITE_BASE_API_URL \
-            --build-arg VITE_OAUTH_REDIRECT_URI=$VITE_OAUTH_REDIRECT_URI \
-            -t $ECR_URI:${BUILD_NUMBER} -t $ECR_URI:latest .
+          docker build --platform linux/amd64 -t $ECR_URI:${BUILD_NUMBER} -t $ECR_URI:latest .
           docker push $ECR_URI:${BUILD_NUMBER}
           docker push $ECR_URI:latest
         '''
@@ -40,7 +40,7 @@ pipeline {
               git config user.email 'jenkins@local'
               git config user.name 'jenkins'
               git add k8s/${GITOPS_MANIFEST}.yaml
-              git diff --cached --quiet || git commit -m 'ci(react-note): image ${BUILD_NUMBER}'
+              git diff --cached --quiet || git commit -m 'ci(auth): image ${BUILD_NUMBER}'
               git remote set-url origin https://\${GH_USER}:\${GH_TOKEN}@github.com/sk4cks/react-note-deploy.git
               git push origin main
             """

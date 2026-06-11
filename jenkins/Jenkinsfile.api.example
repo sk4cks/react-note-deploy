@@ -1,0 +1,34 @@
+// react-note-api 예시. ECR_URI, GITOPS_REPO, AWS_REGION 교체
+pipeline {
+  agent any
+  environment {
+    ECR_URI = '123456789012.dkr.ecr.ap-northeast-2.amazonaws.com/react-note-api'
+    AWS_REGION = 'ap-northeast-2'
+  }
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+    stage('Build & Test') {
+      steps {
+        sh './gradlew bootJar -x test'
+      }
+    }
+    stage('Docker Push') {
+      steps {
+        sh '''
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${ECR_URI%/*}
+          docker build -t $ECR_URI:${BUILD_NUMBER} -t $ECR_URI:latest .
+          docker push $ECR_URI:${BUILD_NUMBER}
+          docker push $ECR_URI:latest
+        '''
+      }
+    }
+    stage('Update GitOps') {
+      steps {
+        // GitOps repo의 k8s/react-note-api.yaml 이미지 태그를 BUILD_NUMBER로 갱신 (yq/script)
+        echo 'GitOps manifest 이미지 태그 업데이트 → Argo CD sync'
+      }
+    }
+  }
+}
