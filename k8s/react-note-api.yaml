@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: react-note-api
-          image: 019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/react-note-api:2
+          image: 019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/react-note-api:3
           ports:
             - containerPort: 8082
           envFrom:
