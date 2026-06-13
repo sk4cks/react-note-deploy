@@ -1,5 +1,28 @@
 # Jenkins (학습용) — note-app Argo 경로(k8s/) 밖, 수동 apply
 # EC2 호스트에 Docker 필요: scripts/install-docker-ec2.sh
+# Pod 기동 시 docker CLI + AWS CLI v2 설치 (Jenkinsfile apt-get || true 금지)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jenkins-ci-scripts
+  namespace: jenkins
+data:
+  install-ci-tools.sh: |
+    #!/usr/bin/env bash
+    set -euo pipefail
+    export DEBIAN_FRONTEND=noninteractive
+    if ! command -v docker >/dev/null 2>&1; then
+      apt-get update -qq
+      apt-get install -y -qq docker.io
+    fi
+    if ! command -v aws >/dev/null 2>&1; then
+      apt-get install -y -qq curl unzip ca-certificates
+      curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+      unzip -q /tmp/awscliv2.zip -d /tmp
+      /tmp/aws/install --update
+      rm -rf /tmp/aws /tmp/awscliv2.zip
+    fi
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -31,6 +54,11 @@ spec:
       containers:
         - name: jenkins
           image: jenkins/jenkins:lts-jdk17
+          command: ["/bin/bash", "-c"]
+          args:
+            - |
+              bash /scripts/install-ci-tools.sh
+              exec /usr/local/bin/jenkins.sh
           ports:
             - containerPort: 8080
               name: http
@@ -44,6 +72,9 @@ spec:
               mountPath: /var/jenkins_home
             - name: docker-sock
               mountPath: /var/run/docker.sock
+            - name: ci-scripts
+              mountPath: /scripts
+              readOnly: true
           resources:
             requests:
               memory: "1Gi"
@@ -62,6 +93,10 @@ spec:
           hostPath:
             path: /var/run/docker.sock
             type: Socket
+        - name: ci-scripts
+          configMap:
+            name: jenkins-ci-scripts
+            defaultMode: 0755
 ---
 apiVersion: v1
 kind: Service

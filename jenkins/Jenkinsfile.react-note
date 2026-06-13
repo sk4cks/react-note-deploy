@@ -19,7 +19,8 @@ pipeline {
     stage('Docker Build & Push') {
       steps {
         sh '''
-          apt-get update -qq && apt-get install -y -qq awscli docker.io >/dev/null 2>&1 || true
+          set -eux
+          bash /scripts/install-ci-tools.sh
           aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${ECR_URI%/*}
           docker build --platform linux/amd64 \
             --build-arg VITE_BASE_API_URL=$VITE_BASE_API_URL \

@@ -119,7 +119,7 @@ sudo k3s kubectl exec -n jenkins deploy/jenkins -- \
 
 | 증상 | 확인 |
 |------|------|
-| docker: not found | Pod privileged + docker.sock, 호스트 `install-docker-ec2.sh` |
+| docker: not found / aws: not found | Pod `install-ci-tools` (jenkins.yaml ConfigMap), `|| true` 제거, Jenkins Pod 재시작 |
 | aws: Unable to locate credentials | IMDS hop limit 2 또는 Jenkins AWS credential |
 | git push failed | `github-gitops` credential, PAT `repo` 권한 |
 | ImagePullBackOff | ECR cron / boot service (기존 OPS 문서) |
