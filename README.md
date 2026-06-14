@@ -18,7 +18,7 @@ react-note-deploy/
 ├── k8s/              # kubectl / Argo CD가 apply
 ├── argocd/
 ├── jenkins/          # Jenkinsfile 예시
-├── scripts/          # install-k3s.sh, ecr-registries-renew.sh, install-ecr-cron.sh
+├── scripts/          # install-k3s.sh, note-boot 체인, ECR cron
 ├── docs/             # HTTPS, OPS 가이드
 └── README.md
 ```

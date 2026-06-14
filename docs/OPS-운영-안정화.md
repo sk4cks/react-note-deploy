@@ -48,12 +48,20 @@ RESTART_K3S=true   # false면 yaml만 갱신 (k3s는 재시작 안 함)
 cron은 **인스턴스가 꺼져 있으면 실행 안 됨**. 재시작 직후 `ErrImagePull` 방지:
 
 ```bash
-sudo bash ~/scripts/install-ecr-boot-service.sh
-systemctl status k3s-ecr-renew-onboot
-tail -10 /var/log/k3s-ecr-renew-onboot.log
+cd react-note-deploy/scripts
+sudo bash install-k3s-boot-recovery.sh
+sudo bash install-ecr-boot-service.sh
+systemctl status note-boot-k3s-cleanup note-boot-ecr-renew note-boot-k3s-start k3s
+tail -10 /var/log/note-boot-ecr-renew.log
 ```
 
-부팅 순서: `network` → **ECR 토큰 갱신** → `k3s` 시작 (`RESTART_K3S=false`)
+부팅 순서: `network` → cleanup → **ECR 토큰 갱신** → `k3s start` (`RESTART_K3S=false`)
+
+구 unit(`k3s-boot-cleanup`, `k3s-ecr-renew-onboot`)·옛 로그 정리:
+
+```bash
+sudo bash ~/scripts/cleanup-legacy-boot.sh
+```
 
 ### cron 확인/제거
 
@@ -141,14 +149,15 @@ sudo systemctl start k3s
 ```bash
 cd react-note-deploy/scripts
 sudo bash install-k3s-boot-recovery.sh
+sudo bash install-ecr-boot-service.sh
 ```
 
-부팅 순서: `network` → `note-boot-k3s-cleanup` → `note-boot-ecr-renew` → `k3s`
+부팅 순서: `network` → `note-boot-k3s-cleanup` (orphan만, systemctl stop k3s 없음) → `note-boot-ecr-renew` → `note-boot-k3s-start` → `k3s`
 
-> **주의:** unit 이름을 `k3s-`로 시작하면 `k3s-killall`이 cleanup·ECR 서비스까지 stop 함.
+> **주의:** `k3s-killall.sh`는 `systemctl stop k3s*.service` 호출 — 부팅 cleanup 에서 쓰면 k3s start job 취소됨. unit 이름은 `k3s-` 접두사 금지.
 
 ```bash
-systemctl status note-boot-k3s-cleanup note-boot-ecr-renew
+systemctl status note-boot-k3s-cleanup note-boot-ecr-renew note-boot-k3s-start k3s
 tail -20 /var/log/note-boot-k3s-cleanup.log
 ```
 

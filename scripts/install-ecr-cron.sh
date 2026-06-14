@@ -21,14 +21,13 @@ install -m 755 "$SCRIPT_DIR/ecr-registries-renew.sh" "$INSTALL_PATH"
 cat >"$CONFIG_PATH" <<EOF
 AWS_REGION=${AWS_REGION}
 ECR_REGISTRY=${ECR_REGISTRY}
-RESTART_K3S=true
 EOF
 chmod 644 "$CONFIG_PATH"
 
 touch "$LOG_PATH"
 chmod 644 "$LOG_PATH"
 
-CRON_LINE="0 */6 * * * $INSTALL_PATH >> $LOG_PATH 2>&1"
+CRON_LINE="0 */6 * * * RESTART_K3S=true $INSTALL_PATH >> $LOG_PATH 2>&1"
 (crontab -l 2>/dev/null | grep -v "$INSTALL_PATH" || true; echo "$CRON_LINE") | crontab -
 
 echo "설치 완료"

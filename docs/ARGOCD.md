@@ -31,45 +31,29 @@ sudo k3s kubectl get secret argocd-initial-admin-secret -n argocd \
 
 ---
 
-## 3. UI 접속 (맥 → EC2)
+## 3. UI 접속
+
+**운영 (Ingress, 권장)**
 
 ```bash
-ssh -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem -L 8300:localhost:8300 ubuntu@13.239.220.205
-```
-
-다른 터미널 (EC2 SSH 세션 안):
-
-```bash
-sudo k3s kubectl port-forward svc/argocd-server -n argocd 8300:443 --address 0.0.0.0
-```
-
-맥 브라우저: **https://localhost:8300** (인증서 경고 → 계속)
-
-### port-forward 터미널 안 끄고 싶을 때
-
-**방법 A — systemd (8300 유지, 간단)**
-
-```bash
-# EC2, scripts 복사 후
-sudo bash install-argocd-portforward-service.sh
-```
-
-- EC2 보안 그룹 **TCP 8300** 인바운드 추가
-- 브라우저: `https://13.239.220.205:8300` (SSH 터널 없이 접속 가능)
-- 중지: `sudo systemctl stop argocd-k3s-portforward`
-
-**방법 B — Ingress (권장, 443)**
-
-```bash
-# k8s/ 복사 후 EC2
 sudo bash ~/scripts/setup-argocd-ingress.sh
 ```
 
 - `https://argocd.13.239.220.205.nip.io`
-- port-forward·SSH 터널 **불필요** (보안 그룹 80/443만)
+- 보안 그룹 **80/443**만 열면 됨
 - `server.insecure=true` + Ingress TLS 종료 (backend **port 80**)
 
 인증서: `kubectl get certificate -n argocd` → `argocd-tls` READY
+
+**로컬 디버그 (SSH 터널, 일시적)**
+
+```bash
+ssh -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem -L 8300:localhost:8300 ubuntu@13.239.220.205
+# EC2 SSH 세션 안
+sudo k3s kubectl port-forward svc/argocd-server -n argocd 8300:443 --address 127.0.0.1
+```
+
+맥 브라우저: **https://localhost:8300**
 
 ---
 

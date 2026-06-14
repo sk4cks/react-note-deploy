@@ -4,15 +4,11 @@
 set -euo pipefail
 
 CONFIG="${CONFIG:-/etc/default/k3s-ecr-renew}"
-# systemd Environment=RESTART_K3S=false 가 config 파일에 덮이지 않도록
-RESTART_K3S_FROM_ENV="${RESTART_K3S-}"
 [[ -f "$CONFIG" ]] && source "$CONFIG"
-if [[ -n "$RESTART_K3S_FROM_ENV" ]]; then
-  RESTART_K3S="$RESTART_K3S_FROM_ENV"
-fi
 
 : "${AWS_REGION:=ap-southeast-2}"
 : "${ECR_REGISTRY:=019511184889.dkr.ecr.ap-southeast-2.amazonaws.com}"
+# cron: RESTART_K3S=true 로 실행 / 부팅 systemd: Environment=RESTART_K3S=false
 : "${RESTART_K3S:=true}"
 : "${K3S_REGISTRIES_PATH:=/etc/rancher/k3s/registries.yaml}"
 
@@ -38,9 +34,13 @@ EOF
 log "registries.yaml 갱신 완료"
 
 if [[ "$RESTART_K3S" == "true" ]]; then
-  log "k3s restart (10~30초 서비스 끊김 가능)"
-  sudo systemctl restart k3s
-  log "k3s restart 완료"
+  if systemctl is-active --quiet k3s 2>/dev/null; then
+    log "k3s restart (10~30초 서비스 끊김 가능)"
+    sudo systemctl restart k3s
+    log "k3s restart 완료"
+  else
+    log "k3s inactive — restart 생략 (부팅 시 note-boot-k3s-start 가 start)"
+  fi
 else
   log "RESTART_K3S=false — 다음 pull 전까지는 예전 토큰일 수 있음"
 fi
