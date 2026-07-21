@@ -1,4 +1,5 @@
-*.secret.yaml*
+*.secret.yaml
+!*.secret.yaml.example
 secrets/
 .env
 *.pem
