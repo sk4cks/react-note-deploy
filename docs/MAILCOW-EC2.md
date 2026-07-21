@@ -8,7 +8,19 @@
 - EC2 EIP: `13.239.220.205`
 - Mailcow는 **k8s Pod가 아님** — 호스트 Compose
 - Pod → 호스트: 노드 INTERNAL-IP `172.31.3.140` (k3s node)
-- API allow: `10.42.0.0/16` (pod), `172.31.0.0/20` (VPC)
+- API allow: `10.42.0.0/16` (pod), `172.31.0.0/20` (VPC), `172.22.0.0/16` (mailcow bridge)
+- **HTTP/HTTPS:** `8080`/`8443` (Traefik가 `80`/`443` 사용 — 충돌 금지)
+
+## Pod → Mailcow 방화벽
+Mailcow `netfilter`의 `MAILCOW` iptables chain이 `!br-mailcow → br-mailcow` 를 DROP 해서
+k3s pod(`10.42.0.0/16`) → host published `8443`/`993` 이 timeout 난다.
+
+EC2에 적용 (재부팅·netfilter rewrite 대비 timer):
+```bash
+sudo /usr/local/bin/note-mailcow-k3s-allow.sh
+sudo systemctl enable --now note-mailcow-k3s-allow.timer
+```
+스크립트는 INPUT(`cni0`→8443/993/587/8080), `DOCKER-USER`, `MAILCOW` chain 맨 앞에 pod CIDR ACCEPT.
 
 ## 설치 (EC2)
 ```bash
