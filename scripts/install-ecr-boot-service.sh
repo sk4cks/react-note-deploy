@@ -9,8 +9,8 @@ SERVICE_NAME="note-boot-ecr-renew"
 START_SERVICE="note-boot-k3s-start"
 LOG_PATH="/var/log/note-boot-ecr-renew.log"
 
-AWS_REGION="${AWS_REGION:-ap-southeast-2}"
-ECR_REGISTRY="${ECR_REGISTRY:-019511184889.dkr.ecr.ap-southeast-2.amazonaws.com}"
+AWS_REGION="${AWS_REGION:-ap-northeast-2}"
+ECR_REGISTRY="${ECR_REGISTRY:-019511184889.dkr.ecr.ap-northeast-2.amazonaws.com}"
 
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "sudo 로 실행하세요: sudo bash $0"

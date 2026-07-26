@@ -1,5 +1,5 @@
 # Elastic IP + nip.io + HTTPS
-# 1) 아래 13.239.220.205 를 탄력적 IP로 교체 (예: 3.25.208.109)
+# 1) 아래 52.78.20.70 를 탄력적 IP로 교체 (예: 3.25.208.109)
 # 2) cert-manager ClusterIssuer 적용 후 이 파일 apply
 # 3) cert-manager.io/cluster-issuer: letsencrypt-prod (브라우저 신뢰용)
 apiVersion: networking.k8s.io/v1
@@ -13,12 +13,12 @@ metadata:
 spec:
   tls:
     - hosts:
-        - app.13.239.220.205.nip.io
-        - api.13.239.220.205.nip.io
-        - auth.13.239.220.205.nip.io
+        - app.52.78.20.70.nip.io
+        - api.52.78.20.70.nip.io
+        - auth.52.78.20.70.nip.io
       secretName: note-tls
   rules:
-    - host: app.13.239.220.205.nip.io
+    - host: app.52.78.20.70.nip.io
       http:
         paths:
           - path: /
@@ -28,7 +28,7 @@ spec:
                 name: react-note
                 port:
                   number: 80
-    - host: api.13.239.220.205.nip.io
+    - host: api.52.78.20.70.nip.io
       http:
         paths:
           - path: /
@@ -38,7 +38,7 @@ spec:
                 name: react-note-api
                 port:
                   number: 8082
-    - host: auth.13.239.220.205.nip.io
+    - host: auth.52.78.20.70.nip.io
       http:
         paths:
           - path: /

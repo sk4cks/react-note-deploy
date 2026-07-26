@@ -10,10 +10,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - argocd.13.239.220.205.nip.io
+        - argocd.52.78.20.70.nip.io
       secretName: argocd-tls
   rules:
-    - host: argocd.13.239.220.205.nip.io
+    - host: argocd.52.78.20.70.nip.io
       http:
         paths:
           - path: /

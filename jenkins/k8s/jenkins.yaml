@@ -125,10 +125,10 @@ metadata:
 spec:
   tls:
     - hosts:
-        - jenkins.13.239.220.205.nip.io
+        - jenkins.52.78.20.70.nip.io
       secretName: jenkins-tls
   rules:
-    - host: jenkins.13.239.220.205.nip.io
+    - host: jenkins.52.78.20.70.nip.io
       http:
         paths:
           - path: /

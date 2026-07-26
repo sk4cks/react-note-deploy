@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: auth-server
-          image: 019511184889.dkr.ecr.ap-southeast-2.amazonaws.com/auth-server:8
+          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/auth-server:8
           ports:
             - containerPort: 9000
           env:
@@ -24,7 +24,7 @@ spec:
             - name: SERVER_SERVLET_CONTEXT_PATH
               value: "/authorization-api"
             - name: SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER
-              value: "https://auth.13.239.220.205.nip.io"
+              value: "https://auth.52.78.20.70.nip.io"
             - name: GOOGLE_CLIENT_ID
               valueFrom:
                 secretKeyRef:
@@ -67,36 +67,11 @@ spec:
                 secretKeyRef:
                   name: postgres
                   key: POSTGRES_PASSWORD
-            # Mailcow on EC2 host (Compose) — see docs/MAILCOW-EC2.md
+            # Mailcow: 서울 메일 EC2 준비 후 다시 enable (지금은 앱 이전만)
             - name: MAIL_DOMAIN
               value: "note.local"
             - name: MAILCOW_ENABLED
-              value: "true"
-            - name: MAILCOW_BASE_URL
-              value: "https://172.31.3.140:8443"
-            - name: MAILCOW_IMAP_HOST
-              value: "172.31.3.140"
-            - name: MAILCOW_IMAP_PORT
-              value: "993"
-            - name: MAILCOW_SMTP_HOST
-              value: "172.31.3.140"
-            - name: MAILCOW_SMTP_PORT
-              value: "587"
-            - name: MAILCOW_API_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: auth-server-mail
-                  key: MAILCOW_API_KEY
-            - name: MAILBOX_PASSWORD_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: auth-server-mail
-                  key: MAILBOX_PASSWORD_SECRET
-            - name: MAILBOX_PASSWORD_SALT
-              valueFrom:
-                secretKeyRef:
-                  name: auth-server-mail
-                  key: MAILBOX_PASSWORD_SALT
+              value: "false"
 ---
 apiVersion: v1
 kind: Service

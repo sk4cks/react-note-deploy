@@ -31,5 +31,5 @@ echo "Certificate:"
 sudo k3s kubectl get certificate -n argocd
 
 echo ""
-echo "Open: https://argocd.13.239.220.205.nip.io"
+echo "Open: https://argocd.52.78.20.70.nip.io"
 echo "(admin + initial password from argocd-initial-admin-secret)"

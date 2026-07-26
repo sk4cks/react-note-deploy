@@ -6,8 +6,8 @@ set -euo pipefail
 CONFIG="${CONFIG:-/etc/default/k3s-ecr-renew}"
 [[ -f "$CONFIG" ]] && source "$CONFIG"
 
-: "${AWS_REGION:=ap-southeast-2}"
-: "${ECR_REGISTRY:=019511184889.dkr.ecr.ap-southeast-2.amazonaws.com}"
+: "${AWS_REGION:=ap-northeast-2}"
+: "${ECR_REGISTRY:=019511184889.dkr.ecr.ap-northeast-2.amazonaws.com}"
 # cron: RESTART_K3S=true 로 실행 / 부팅 systemd: Environment=RESTART_K3S=false
 : "${RESTART_K3S:=true}"
 : "${K3S_REGISTRIES_PATH:=/etc/rancher/k3s/registries.yaml}"
