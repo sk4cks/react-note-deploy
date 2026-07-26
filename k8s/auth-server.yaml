@@ -72,6 +72,16 @@ spec:
               value: "note.local"
             - name: MAILCOW_ENABLED
               value: "false"
+            - name: MAILBOX_PASSWORD_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-mail
+                  key: MAILBOX_PASSWORD_SECRET
+            - name: MAILBOX_PASSWORD_SALT
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-mail
+                  key: MAILBOX_PASSWORD_SALT
 ---
 apiVersion: v1
 kind: Service
