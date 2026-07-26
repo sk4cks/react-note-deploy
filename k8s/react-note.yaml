@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: react-note
-          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/react-note:12
+          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/react-note:13
           ports:
             - containerPort: 80
 ---
