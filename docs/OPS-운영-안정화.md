@@ -2,10 +2,14 @@
 
 HTTPS·nip.io 적용 후 **안 깨지게** 유지하는 체크리스트.
 
-현재 기준:
-- **Elastic IP:** `13.239.220.205`
+현재 기준 (서울 `ap-northeast-2`):
+- **Elastic IP:** `52.78.20.70`
+- **인스턴스:** `note-app-seoul` (Rocky Linux 9, t3.large)
+- **SSH:** `ssh -i note_kube.pem rocky@52.78.20.70`
 - **HTTPS:** `ingress-https.yaml` + `letsencrypt-prod`
-- **ECR:** `019511184889.dkr.ecr.ap-southeast-2.amazonaws.com`
+- **ECR:** `019511184889.dkr.ecr.ap-northeast-2.amazonaws.com`
+- **IAM instance profile:** `ec2-k3s-ecr-read` (IMDS hop limit 2)
+- **GitOps:** Argo CD `note-app` + Jenkins CI (앱 repo → ECR → deploy 태그 bump)
 
 ---
 
@@ -17,7 +21,8 @@ ECR 토큰은 **12시간** 만료 → `ImagePullBackOff` 방지.
 
 ```bash
 # 맥에서 scripts 복사
-scp -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem -r /Users/sk4cks/code/react-note-deploy/scripts ubuntu@13.239.220.205:~
+scp -i /Users/sk4cks/code/react-note-deploy/note_kube.pem -r \
+  /Users/sk4cks/code/react-note-deploy/scripts rocky@52.78.20.70:~
 
 # EC2
 cd ~/scripts
@@ -38,8 +43,8 @@ sudo k3s kubectl get pods -n note
 `/etc/default/k3s-ecr-renew`:
 
 ```bash
-AWS_REGION=ap-southeast-2
-ECR_REGISTRY=019511184889.dkr.ecr.ap-southeast-2.amazonaws.com
+AWS_REGION=ap-northeast-2
+ECR_REGISTRY=019511184889.dkr.ecr.ap-northeast-2.amazonaws.com
 RESTART_K3S=true   # false면 yaml만 갱신 (k3s는 재시작 안 함)
 ```
 
@@ -48,7 +53,7 @@ RESTART_K3S=true   # false면 yaml만 갱신 (k3s는 재시작 안 함)
 cron은 **인스턴스가 꺼져 있으면 실행 안 됨**. 재시작 직후 `ErrImagePull` 방지:
 
 ```bash
-cd react-note-deploy/scripts
+cd ~/scripts
 sudo bash install-k3s-boot-recovery.sh
 sudo bash install-ecr-boot-service.sh
 systemctl status note-boot-k3s-cleanup note-boot-ecr-renew note-boot-k3s-start k3s
@@ -79,7 +84,7 @@ crontab -e
 
 ## 2. Elastic IP 확인
 
-콘솔: **EC2 → 탄력적 IP** → 인스턴스 `mini_kube`에 연결됐는지.
+콘솔: **EC2 → 탄력적 IP** → 인스턴스 `note-app-seoul`에 연결됐는지.
 
 ```bash
 # 퍼블릭 IP (EIP와 동일해야 함)
@@ -94,8 +99,9 @@ curl -sf -H "X-aws-ec2-metadata-token: $TOKEN" \
 
 Ingress host / 프론트 build-arg가 **이 IP**인지:
 
-- `app.13.239.220.205.nip.io`
-- `api.13.239.220.205.nip.io`
+- `app.52.78.20.70.nip.io`
+- `api.52.78.20.70.nip.io`
+- `auth.52.78.20.70.nip.io`
 
 ---
 
@@ -109,9 +115,23 @@ sudo k3s kubectl describe certificate note-tls -n note
 - **READY True**, **Renewal Time** 확인
 - EC2 **장기 중지** 시 갱신 실패 → 80 포트 열린 상태로 재기동
 
+관련 UI:
+
+- Argo CD: https://argocd.52.78.20.70.nip.io
+- Jenkins: https://jenkins.52.78.20.70.nip.io
+
 ---
 
-## 4. `react-note-deploy` Git 관리
+## 4. Postgres 외부 접속 (선택)
+
+클러스터 안: `postgres.note.svc.cluster.local:5432`  
+로컬 DBeaver: `52.78.20.70:30432` (`postgres-external` NodePort)
+
+보안 그룹에 **30432 → 내 IP만** 허용 (전체 공개 금지).
+
+---
+
+## 5. `react-note-deploy` Git 관리
 
 맥에서 (민감 정보 제외):
 
@@ -119,22 +139,15 @@ sudo k3s kubectl describe certificate note-tls -n note
 cd /Users/sk4cks/code/react-note-deploy
 git status
 git add k8s/ scripts/ docs/
-git commit -m "Add HTTPS manifests, ECR cron scripts, ops docs"
+git commit -m "docs: Seoul ops baseline"
 git push
 ```
 
-**커밋하지 말 것:** `.env`, Access Key, `.pem`
-
-원격 repo 없으면 GitHub에 `react-note-deploy` 생성 후:
-
-```bash
-git remote add origin https://github.com/YOUR_USER/react-note-deploy.git
-git push -u origin main
-```
+**커밋하지 말 것:** `.env`, Access Key, `.pem`, `*.secret.yaml`
 
 ---
 
-## 5. EC2 Stop/Start 후 k3s 자동 복구
+## 6. EC2 Stop/Start 후 k3s 자동 복구
 
 **증상:** `systemctl status k3s` → inactive, `containerd-shim remains running after unit stopped`
 
@@ -147,12 +160,12 @@ sudo systemctl start k3s
 
 **자동화 (1회 설치):**
 ```bash
-cd react-note-deploy/scripts
+cd ~/scripts
 sudo bash install-k3s-boot-recovery.sh
 sudo bash install-ecr-boot-service.sh
 ```
 
-부팅 순서: `network` → `note-boot-k3s-cleanup` (orphan만, systemctl stop k3s 없음) → `note-boot-ecr-renew` → `note-boot-k3s-start` → `k3s`
+부팅 순서: `network` → `note-boot-k3s-cleanup` → `note-boot-ecr-renew` → `note-boot-k3s-start` → `k3s`
 
 > **주의:** `k3s-killall.sh`는 `systemctl stop k3s*.service` 호출 — 부팅 cleanup 에서 쓰면 k3s start job 취소됨. unit 이름은 `k3s-` 접두사 금지.
 
@@ -161,19 +174,18 @@ systemctl status note-boot-k3s-cleanup note-boot-ecr-renew note-boot-k3s-start k
 tail -20 /var/log/note-boot-k3s-cleanup.log
 ```
 
-## 6. EC2 중지/시작 후 빠른 점검
+## 7. EC2 중지/시작 후 빠른 점검
 
 1. Elastic IP still attached?
 2. `systemctl is-active k3s` (자동 복구 설치 시 cleanup 로그 확인)
 3. `sudo k3s kubectl get pods -n note`
 4. `sudo k3s kubectl get certificate -n note`
-5. https://app.13.239.220.205.nip.io
+5. https://app.52.78.20.70.nip.io
 
 ---
 
-## 다음 단계 (이후)
+## 다음 단계
 
-- **Argo CD** — Git push → 자동 sync
-- **Jenkins** — build → ECR push
+- **Mailcow 전용 EC2** — 앱 노드와 분리 (같은 VPC). 지금은 Auth `MAILCOW_ENABLED=false`
 - **Cloudflare + 도메인** — nip.io 대체
-- **SNS OAuth**
+- (완료) Argo CD / Jenkins / 서울 ECR / SNS OAuth redirect

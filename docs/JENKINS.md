@@ -26,20 +26,22 @@ Jenkins Pod가 `docker.sock` 마운트 → **호스트에 Docker CE** 필요.
 
 ```bash
 # 맥 → EC2 (jenkins → ~/jenkins, scripts → ~/scripts/)
-ssh -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem ubuntu@13.239.220.205 'mkdir -p ~/scripts'
+ssh -i /Users/sk4cks/code/react-note-deploy/note_kube.pem rocky@52.78.20.70 'mkdir -p ~/scripts'
 
-scp -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem -r \
+scp -i /Users/sk4cks/code/react-note-deploy/note_kube.pem -r \
   /Users/sk4cks/code/react-note-deploy/jenkins \
-  ubuntu@13.239.220.205:~
+  rocky@52.78.20.70:~
 
-scp -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem \
+scp -i /Users/sk4cks/code/react-note-deploy/note_kube.pem \
   /Users/sk4cks/code/react-note-deploy/scripts/install-docker-ec2.sh \
   /Users/sk4cks/code/react-note-deploy/scripts/install-jenkins.sh \
-  ubuntu@13.239.220.205:~/scripts/
+  rocky@52.78.20.70:~/scripts/
 
 sudo bash ~/scripts/install-docker-ec2.sh
 docker --version
 ```
+
+> **Rocky Linux:** `install-docker-ec2.sh`는 Ubuntu(apt)용. Seoul 앱 노드는 Docker CE(`dnf` + docker-ce.repo)로 설치함.
 
 ### EC2 IMDS (Jenkins에서 `aws ecr` 용)
 
@@ -70,7 +72,7 @@ sudo bash ~/scripts/install-jenkins.sh
 sudo k3s kubectl get certificate -n jenkins
 ```
 
-UI: **https://jenkins.13.239.220.205.nip.io**
+UI: **https://jenkins.52.78.20.70.nip.io**
 
 초기 비밀번호:
 
@@ -143,7 +145,7 @@ Suggested plugins 설치했다면 보통 이미 있음.
 **Manage Jenkins → System → Jenkins URL**
 
 ```text
-https://jenkins.13.239.220.205.nip.io
+https://jenkins.52.78.20.70.nip.io
 ```
 
 Save.
@@ -164,7 +166,7 @@ Save.
 
 | 항목 | 값 |
 |------|-----|
-| **Payload URL** | `https://jenkins.13.239.220.205.nip.io/github-webhook/` |
+| **Payload URL** | `https://jenkins.52.78.20.70.nip.io/github-webhook/` |
 | **Content type** | `application/json` |
 | **Which events** | **Just the push event** |
 | **Active** | ✅ |

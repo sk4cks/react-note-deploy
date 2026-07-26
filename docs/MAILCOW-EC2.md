@@ -1,68 +1,56 @@
-# EC2 호스트 Mailcow (Docker Compose) — 공개 MX 없음 (도메인 미보유)
+# Mailcow — 공개 MX 없음 (도메인 미보유)
 
 ## 목표
 - Auth 가입 시 Mailcow에 `userId@note.local` 메일함 생성
-- BFF `app.mail.provider=imap` → Auth mailbox 자격 → 호스트 IMAP
+- BFF `app.mail.provider=imap` → Auth mailbox 자격 → IMAP
 
-## 전제
-- EC2 EIP: `13.239.220.205`
-- Mailcow는 **k8s Pod가 아님** — 호스트 Compose
-- Pod → 호스트: 노드 INTERNAL-IP `172.31.3.140` (k3s node)
-- API allow: `10.42.0.0/16` (pod), `172.31.0.0/20` (VPC), `172.22.0.0/16` (mailcow bridge)
-- **HTTP/HTTPS:** `8080`/`8443` (Traefik가 `80`/`443` 사용 — 충돌 금지)
+## 현재 상태 (서울)
+- **앱 EC2:** `52.78.20.70` / `note-app-seoul` (k3s만)
+- Auth: **`MAILCOW_ENABLED=false`** (메일 서버 미기동)
+- 시드니 동일 호스트 Mailcow는 **종료·삭제됨**
 
-## Pod → Mailcow 방화벽
-Mailcow `netfilter`의 `MAILCOW` iptables chain이 `!br-mailcow → br-mailcow` 를 DROP 해서
-k3s pod(`10.42.0.0/16`) → host published `8443`/`993` 이 timeout 난다.
+## 권장 아키텍처
+앱과 Mailcow를 **같은 VPC의 다른 EC2**로 분리 (iptables/netfilter 충돌 회피).
 
-EC2에 적용 (재부팅·netfilter rewrite 대비 timer):
-```bash
-sudo /usr/local/bin/note-mailcow-k3s-allow.sh
-sudo systemctl enable --now note-mailcow-k3s-allow.timer
 ```
-스크립트는 INPUT(`cni0`→8443/993/587/8080), `DOCKER-USER`, `MAILCOW` chain 맨 앞에 pod CIDR ACCEPT.
-
-## 설치 (EC2)
-```bash
-cd ~/mailcow-dockerized
-# mailcow.conf: MAILCOW_HOSTNAME=mail.13.239.220.205.nip.io
-# HTTP_PORT=8080 HTTPS_PORT=8443  (k3s Traefik가 80/443 사용 — 충돌 금지)
-# SKIP_CLAMD/OLEFY/SOGO/FTS=y (메모리)
-# API_KEY + API_ALLOW_FROM=127.0.0.1,::1,10.42.0.0/16,172.31.0.0/20,172.17.0.0/16,172.22.0.0/16
-docker compose up -d
+SPA → BFF Pod → Auth Pod → Mailcow API (:8443)
+                 BFF Pod → Mailcow IMAP (:993)
 ```
 
-도메인 추가 (API):
-```bash
-API_KEY=$(cat ~/mailcow-api-key.txt)
-curl -sk -X POST "https://127.0.0.1:8443/api/v1/add/domain" \
-  -H "X-API-Key: $API_KEY" -H "Content-Type: application/json" \
-  -d '{"domain":"note.local","description":"note app","aliases":"50","mailboxes":"50","defquota":"3072","maxquota":"10240","quota":"102400","active":"1"}'
-```
+### Mailcow EC2 (예정)
+- 리전: `ap-northeast-2`, 서브넷: 앱과 동일 AZ 권장 (`ap-northeast-2a`)
+- Compose: `HTTPS 8443` / `HTTP 8080` (앱 Traefik `80`/`443`과 무관)
+- SG: 앱 SG → `8443`, `993`, `587` (필요 시 SSH 내 IP만)
+- `API_ALLOW_FROM`: VPC/앱 노드 CIDR
+- 도메인: UI/API로 `note.local` 추가
 
-## k8s
+### Auth / BFF (Mailcow 기동 후)
 ```bash
-# Secret (gitignore: *.secret.yaml)
+# Secret
 kubectl apply -f k8s/auth-server-mail.secret.yaml
-kubectl apply -f k8s/auth-server.yaml
-kubectl apply -f k8s/configmap-api.yaml
-kubectl apply -f k8s/react-note-api.yaml
-kubectl -n note rollout restart deploy/auth-server deploy/react-note-api
+
+# auth-server.yaml
+MAILCOW_ENABLED=true
+MAILCOW_BASE_URL=https://<mailcow-private-ip>:8443
+MAILCOW_IMAP_HOST=<mailcow-private-ip>
+MAILCOW_SMTP_HOST=<mailcow-private-ip>
 ```
 
-Auth env: `MAILCOW_ENABLED=true`, `MAILCOW_BASE_URL=https://172.31.3.140:8443`,
-`MAILCOW_IMAP_HOST`/`SMTP_HOST=172.31.3.140`, mailbox secret from Secret.
-
-BFF: ConfigMap `MAIL_PROVIDER=imap`.
+BFF ConfigMap: `MAIL_PROVIDER=imap`.
 
 ## 검증
-강한 비밀번호로 가입 후:
 ```bash
-curl -sk -X POST https://api.13.239.220.205.nip.io/api/auth/register \
+curl -sk -X POST https://api.52.78.20.70.nip.io/api/auth/register \
   -H 'Content-Type: application/json' \
   -d '{"userId":"mailtest1","password":"Abcd1234!"}'
 # login → Bearer → GET /api/mail/messages
 ```
 
+강한 비밀번호 사용 (Mailcow는 약한 비번 거부 가능).
+
 ## 비범위
 공개 MX / SPF / DKIM / 외부 송수신.
+
+## (참고) 동일 호스트에 둘 때
+k3s + Mailcow를 한 대에 올리면 Mailcow netfilter가 pod→host를 DROP할 수 있음.
+가능하면 **전용 EC2 분리**를 우선한다.

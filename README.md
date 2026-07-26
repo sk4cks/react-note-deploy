@@ -34,10 +34,12 @@ Route53 (app / api / auth)
 Jenkins → ECR → 이 repo(k8s) 갱신 → Argo CD sync
 ```
 
-### EC2 스펙 (권장)
+### EC2 스펙 (현재 · 서울)
 
-- **t3.large** (8GB), Ubuntu 22.04
-- 보안그룹: 22, 80, 443
+- **리전:** `ap-northeast-2`
+- **t3.large** (8GB), Rocky Linux 9 (`note-app-seoul`)
+- **EIP:** `52.78.20.70` · SSH: `rocky@` + `note_kube.pem`
+- 보안그룹: 22(내 IP), 80, 443 / Postgres 외부용 30432(내 IP)
 
 ### Phase 0 — AWS 준비
 

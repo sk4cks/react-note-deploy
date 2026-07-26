@@ -10,7 +10,7 @@
 
 ## 1. Elastic IP
 
-EC2 → 탄력적 IP → 할당 → `mini_kube`에 연결 → **퍼블릭 IP 메모** (`EIP`)
+EC2 → 탄력적 IP → 할당 → `note-app-seoul`에 연결 → **퍼블릭 IP 메모** (`EIP`)
 
 ## 2. manifest IP 맞추기
 

@@ -1,7 +1,7 @@
 # HTTPS (Elastic IP + nip.io + cert-manager)
 
 > Notion「승찬공부 > EC2 연습」하위에 붙여넣기용  
-> EIP: `13.239.220.205` · 리전: `ap-southeast-2`
+> EIP: `52.78.20.70` · 리전: `ap-northeast-2`
 
 ---
 
@@ -17,9 +17,9 @@
 
 | 서비스 | URL |
 |--------|-----|
-| 프론트 | https://app.13.239.220.205.nip.io |
-| API | https://api.13.239.220.205.nip.io |
-| Auth | https://auth.13.239.220.205.nip.io/authorization-api |
+| 프론트 | https://app.52.78.20.70.nip.io |
+| API | https://api.52.78.20.70.nip.io |
+| Auth | https://auth.52.78.20.70.nip.io/authorization-api |
 
 - `http://` 입력해도 **자동 https** (Ingress TLS + Traefik)
 - nip.io host = **퍼블릭 IP만** (`172.31.x.x` 사용 금지)
@@ -33,7 +33,7 @@
 | `cluster-issuer-staging.yaml` | LE staging (먼저 테스트) |
 | `cluster-issuer-prod.yaml` | LE production (브라우저 신뢰) |
 | `ingress-https.yaml` | TLS + host 3개 |
-| `auth-server.yaml` | issuer `https://auth.13.239.220.205.nip.io` |
+| `auth-server.yaml` | issuer `https://auth.52.78.20.70.nip.io` |
 
 **email** — `cluster-issuer-*.yaml`에 본인 메일 필수
 
@@ -78,11 +78,11 @@ sudo k3s kubectl get certificate -n note -w
 ### Mixed Content
 
 - `https://app` + 요청 `http://api` → 브라우저 차단
-- **해결:** 프론트 재빌드 `VITE_BASE_API_URL=https://api.13.239.220.205.nip.io` + push + rollout restart
+- **해결:** 프론트 재빌드 `VITE_BASE_API_URL=https://api.52.78.20.70.nip.io` + push + rollout restart
 
 ### staging — login 실패 (Provisional headers)
 
-- **해결:** 새 탭에서 `https://api.13.239.220.205.nip.io` 열고 인증서 예외 허용 → 로그인 재시도
+- **해결:** 새 탭에서 `https://api.52.78.20.70.nip.io` 열고 인증서 예외 허용 → 로그인 재시도
 
 ### 일반 창만「주의 요함」
 
@@ -92,7 +92,7 @@ sudo k3s kubectl get certificate -n note -w
 ### API 확인
 
 ```bash
-curl -vk -X POST https://api.13.239.220.205.nip.io/api/auth/login \
+curl -vk -X POST https://api.52.78.20.70.nip.io/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"userId":"admin","password":"1234"}'
 ```

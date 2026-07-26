@@ -39,7 +39,7 @@ sudo k3s kubectl get secret argocd-initial-admin-secret -n argocd \
 sudo bash ~/scripts/setup-argocd-ingress.sh
 ```
 
-- `https://argocd.13.239.220.205.nip.io`
+- `https://argocd.52.78.20.70.nip.io`
 - 보안 그룹 **80/443**만 열면 됨
 - `server.insecure=true` + Ingress TLS 종료 (backend **port 80**)
 
@@ -48,7 +48,7 @@ sudo bash ~/scripts/setup-argocd-ingress.sh
 **로컬 디버그 (SSH 터널, 일시적)**
 
 ```bash
-ssh -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem -L 8300:localhost:8300 ubuntu@13.239.220.205
+ssh -i /Users/sk4cks/code/react-note-deploy/note_kube.pem -L 8300:localhost:8300 rocky@52.78.20.70
 # EC2 SSH 세션 안
 sudo k3s kubectl port-forward svc/argocd-server -n argocd 8300:443 --address 127.0.0.1
 ```
@@ -63,14 +63,16 @@ sudo k3s kubectl port-forward svc/argocd-server -n argocd 8300:443 --address 127
 
 ```bash
 # repo와 동일하게 EC2에 ~/argocd/ 로 복사 (application + ingress manifest)
-scp -i /Users/sk4cks/code/react-note-deploy/mini_kube.pem -r \
+scp -i /Users/sk4cks/code/react-note-deploy/note_kube.pem -r \
   /Users/sk4cks/code/react-note-deploy/argocd \
-  ubuntu@13.239.220.205:~
+  rocky@52.78.20.70:~
 
-sudo k3s kubectl apply -f /home/ubuntu/argocd/application.yaml
+sudo k3s kubectl apply -f /home/rocky/argocd/application.yaml
 ```
 
 Argo UI에서 **note-app** → Sync → Healthy 확인.
+
+UI (운영): **https://argocd.52.78.20.70.nip.io**
 
 ---
 
