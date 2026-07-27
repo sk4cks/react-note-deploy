@@ -67,11 +67,22 @@ spec:
                 secretKeyRef:
                   name: postgres
                   key: POSTGRES_PASSWORD
-            # Mailcow: 서울 메일 EC2 준비 후 다시 enable (지금은 앱 이전만)
+            # Mailcow EC2 (private): 172.31.0.203 / EIP 3.39.19.226
             - name: MAIL_DOMAIN
               value: "note.local"
             - name: MAILCOW_ENABLED
-              value: "false"
+              value: "true"
+            - name: MAILCOW_BASE_URL
+              value: "https://172.31.0.203:8443"
+            - name: MAILCOW_IMAP_HOST
+              value: "172.31.0.203"
+            - name: MAILCOW_SMTP_HOST
+              value: "172.31.0.203"
+            - name: MAILCOW_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: auth-server-mail
+                  key: MAILCOW_API_KEY
             - name: MAILBOX_PASSWORD_SECRET
               valueFrom:
                 secretKeyRef:
