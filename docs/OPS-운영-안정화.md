@@ -186,6 +186,6 @@ tail -20 /var/log/note-boot-k3s-cleanup.log
 
 ## 다음 단계
 
-- **Mailcow 전용 EC2** — 앱 노드와 분리 (같은 VPC). 지금은 Auth `MAILCOW_ENABLED=false`
+- **Mailcow 전용 EC2** — `3.39.19.226` / private `172.31.0.203` (상세: `docs/MAILCOW-EC2.md`). Auth `MAILCOW_ENABLED=true`
 - **Cloudflare + 도메인** — nip.io 대체
 - (완료) Argo CD / Jenkins / 서울 ECR / SNS OAuth redirect
