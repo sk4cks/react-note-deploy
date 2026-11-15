@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: nvidia-device-plugin
+  namespace: note
+spec:
+  selector:
+    matchLabels:
+      name: nvidia-device-plugin
+  template:
+    metadata:
+      labels:
+        name: nvidia-device-plugin
+    spec:
+      runtimeClassName: nvidia
+      nodeSelector:
+        gpu: l4
+      priorityClassName: system-node-critical
+      tolerations:
+        - key: nvidia.com/gpu
+          operator: Exists
+          effect: NoSchedule
+      containers:
+        - name: nvidia-device-plugin
+          image: nvcr.io/nvidia/k8s-device-plugin:v0.20.2
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: device-plugin
+              mountPath: /var/lib/kubelet/device-plugins
+      volumes:
+        - name: device-plugin
+          hostPath:
+            path: /var/lib/rancher/k3s/agent/kubelet/device-plugins
+            type: DirectoryOrCreate
