@@ -29,6 +29,8 @@ spec:
                 configMapKeyRef:
                   name: react-note-api-config
                   key: MAIL_PROVIDER
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
 ---
 apiVersion: v1
 kind: Service

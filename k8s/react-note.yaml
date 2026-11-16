@@ -20,6 +20,8 @@ spec:
           image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/react-note:2
           ports:
             - containerPort: 80
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
 ---
 apiVersion: v1
 kind: Service

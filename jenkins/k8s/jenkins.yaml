@@ -51,6 +51,8 @@ spec:
         app: jenkins
     spec:
       serviceAccountName: default
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
       containers:
         - name: jenkins
           image: jenkins/jenkins:lts-jdk17

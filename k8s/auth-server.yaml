@@ -93,6 +93,8 @@ spec:
                 secretKeyRef:
                   name: auth-server-mail
                   key: MAILBOX_PASSWORD_SALT
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
 ---
 apiVersion: v1
 kind: Service
