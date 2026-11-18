@@ -1,0 +1,91 @@
+# Docker vLLM이 켜져 있으면 L4를 같이 잡는 배포 금지. 먼저 docker stop.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vllm
+  namespace: note
+spec:
+  replicas: 1
+  selector:
+    # 이 라벨을 가진 파드만 이 디플로이먼트가 관리.
+    matchLabels:
+      app: vllm
+  template:
+    metadata:
+      labels:
+        app: vllm
+    spec:
+      # nvidia 런타임으로 GPU 장치 연결.
+      runtimeClassName: nvidia
+      # gpu=l4 인 GPU 서버만 선택.
+      nodeSelector:
+        gpu: l4
+      containers:
+        - name: vllm
+          # latest 는 기동마다 이미지를 다시 받음.
+          image: vllm/vllm-openai:latest
+          # 이미지 기본 명령 뒤에 붙는 실행 인자. 지금 Docker와 같은 값.
+          args:
+            - --model
+            - Qwen/Qwen2.5-14B-Instruct-AWQ
+            - --max-model-len
+            - "4096"
+            - --gpu-memory-utilization
+            - "0.90"
+            # API 설정의 AI_API_KEY 와 같은 값.
+            - --api-key
+            - local
+          ports:
+            - containerPort: 8000
+          resources:
+            requests:
+              cpu: "2"
+              memory: 4Gi
+              # GPU 1장 예약.
+              nvidia.com/gpu: 1
+            limits:
+              # 상한도 1장. 메모리 상한은 없어서 로딩 중 강제 종료 방지.
+              nvidia.com/gpu: 1
+          volumeMounts:
+            # 컨테이너 안 Hugging Face 캐시 자리에 호스트 가중치 연결.
+            - name: hf-cache
+              mountPath: /root/.cache/huggingface
+            # 기본 64MB 공유 메모리를 2Gi 로 교체.
+            - name: shm
+              mountPath: /dev/shm
+          # /health 가 응답할 때까지 10초 간격, 최대 90번(15분) 기동 대기.
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+            failureThreshold: 90
+          # 기동 후 /health 가 되면 서비스 트래픽 수신.
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            periodSeconds: 10
+      volumes:
+        - name: hf-cache
+          hostPath:
+            # GPU 서버에 받아 둔 가중치. 디렉터리가 없으면 파드 생성 실패.
+            path: /home/rocky/model/hf-cache
+            type: Directory
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 2Gi
+---
+# 클러스터 안 이름 vllm.note.svc.cluster.local:8000 으로 파드 연결.
+apiVersion: v1
+kind: Service
+metadata:
+  name: vllm
+  namespace: note
+spec:
+  selector:
+    app: vllm
+  ports:
+    - port: 8000
+      targetPort: 8000

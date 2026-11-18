@@ -10,7 +10,7 @@ data:
   AUTH_INTERNAL_API_KEY: "dev-internal-key"
   # EC2 Mailcow IMAP (host Compose). Gmail 경로로 되돌리려면 gmail
   MAIL_PROVIDER: "imap"
-  # AI 모델 관련
-  AI_BASE_URL: "http://172.31.47.190:8000"
+  # AI 모델 관련. 끝에 /v1 을 붙이지 않음
+  AI_BASE_URL: "http://vllm.note.svc.cluster.local:8000"
   AI_API_KEY: "local"
   AI_MODEL: "Qwen/Qwen2.5-14B-Instruct-AWQ"
