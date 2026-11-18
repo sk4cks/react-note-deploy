@@ -1,93 +1,81 @@
 # Docker vLLM이 켜져 있으면 L4를 같이 잡는 배포 금지. 먼저 docker stop.
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vllm
-  namespace: note
-spec:
-  replicas: 1
-  selector:
-    # 이 라벨을 가진 파드만 이 디플로이먼트가 관리.
-    matchLabels:
-      app: vllm
-  template:
-    metadata:
-      labels:
-        app: vllm
-    spec:
-      # 서비스 이름 vllm 이 VLLM_PORT 에 tcp://주소 를 넣어 기동 실패. 환경변수 주입 끄기.
-      enableServiceLinks: false
-      # nvidia 런타임으로 GPU 장치 연결.
-      runtimeClassName: nvidia
-      # gpu=l4 인 GPU 서버만 선택.
-      nodeSelector:
-        gpu: l4
-      containers:
-        - name: vllm
-          # latest 는 기동마다 이미지를 다시 받음.
-          image: vllm/vllm-openai:latest
-          # 이미지 기본 명령 뒤에 붙는 실행 인자. 지금 Docker와 같은 값.
-          args:
-            - --model
+apiVersion: apps/v1 # Deployment 가 속한 API 그룹
+kind: Deployment # 파드 수를 유지하는 컨트롤러
+metadata: # 이름·라벨·소속
+  name: vllm # 디플로이먼트 이름
+  namespace: note # 소속 네임스페이스
+spec: # 이 객체의 동작 정의
+  replicas: 1 # 유지할 파드 수
+  # GPU 가 1장이면 새 파드를 먼저 만들 수 없음. 이전 파드 종료 후 생성.
+  strategy: # 파드를 교체하는 방식
+    type: Recreate # 롤링 없이 이전 파드 삭제 후 새 파드 생성
+  selector: # 대상 파드를 고르는 조건
+    matchLabels: # 라벨이 모두 같아야 선택
+      app: vllm # 이 라벨 파드만 관리
+  template: # 새로 만들 파드의 틀
+    metadata: # 이름·라벨·소속
+      labels: # 객체에 붙이는 표시
+        app: vllm # 새 파드에 붙일 라벨. selector 와 일치
+    spec: # 이 객체의 동작 정의
+      enableServiceLinks: false # 서비스 이름 vllm 이 VLLM_PORT 에 URI 를 넣는 주입 중지
+      runtimeClassName: nvidia # GPU 장치를 넣는 컨테이너 런타임
+      nodeSelector: # 배치할 노드 조건
+        gpu: l4 # 이 라벨이 있는 GPU 서버만 선택
+      containers: # 파드 안에서 실행할 컨테이너 목록
+        - name: vllm # 컨테이너 이름
+          image: vllm/vllm-openai:latest # 실행 이미지. latest 는 기동마다 다시 받음
+          args: # 이미지 기본 명령 뒤에 붙는 인자
+            - --model # 서빙 모델 지정
             - Qwen/Qwen2.5-14B-Instruct-AWQ
-            - --max-model-len
+            - --max-model-len # 컨텍스트 길이 지정
             - "4096"
-            - --gpu-memory-utilization
+            - --gpu-memory-utilization # GPU 메모리 사용 비율 지정
             - "0.90"
-            # API 설정의 AI_API_KEY 와 같은 값.
-            - --api-key
+            - --api-key # API 설정의 AI_API_KEY 와 같은 키 지정
             - local
-          ports:
-            - containerPort: 8000
-          resources:
-            requests:
-              cpu: "2"
-              memory: 4Gi
-              # GPU 1장 예약.
-              nvidia.com/gpu: 1
-            limits:
-              # 상한도 1장. 메모리 상한은 없어서 로딩 중 강제 종료 방지.
-              nvidia.com/gpu: 1
-          volumeMounts:
-            # 컨테이너 안 Hugging Face 캐시 자리에 호스트 가중치 연결.
-            - name: hf-cache
-              mountPath: /root/.cache/huggingface
-            # 기본 64MB 공유 메모리를 2Gi 로 교체.
+          ports: # 수신 포트 목록
+            - containerPort: 8000 # 컨테이너가 수신하는 포트
+          resources: # 자원 요청과 상한
+            requests: # 스케줄에 필요한 최소량
+              cpu: "2" # 스케줄에 필요한 CPU 최소량
+              memory: 4Gi # 스케줄에 필요한 메모리 최소량
+              nvidia.com/gpu: 1 # GPU 1장 예약
+            limits: # 사용 상한
+              nvidia.com/gpu: 1 # GPU 상한 1장. 메모리 상한은 없어서 로딩 중 강제 종료 방지
+          volumeMounts: # 컨테이너 안에 연결할 경로
+            - name: hf-cache # 아래 volumes 의 이름과 연결
+              mountPath: /root/.cache/huggingface # 컨테이너 안 Hugging Face 캐시 경로
             - name: shm
-              mountPath: /dev/shm
-          # /health 가 응답할 때까지 10초 간격, 최대 90번(15분) 기동 대기.
-          startupProbe:
-            httpGet:
-              path: /health
+              mountPath: /dev/shm # 기본 64MB 공유 메모리를 볼륨으로 교체
+          startupProbe: # 기동 완료 전에는 실패해도 재시작 보류
+            httpGet: # HTTP 요청으로 상태 확인
+              path: /health # 기동 완료 확인 경로
+              port: 8000 # 프로브가 접속할 포트
+            periodSeconds: 10 # 확인 간격
+            failureThreshold: 90 # 실패 허용 횟수. 10초×90 = 최대 15분 대기
+          readinessProbe: # 트래픽을 받아도 되는지 확인
+            httpGet: # HTTP 요청으로 상태 확인
+              path: /health # 트래픽 수신 가능 여부 확인 경로
               port: 8000
-            periodSeconds: 10
-            failureThreshold: 90
-          # 기동 후 /health 가 되면 서비스 트래픽 수신.
-          readinessProbe:
-            httpGet:
-              path: /health
-              port: 8000
-            periodSeconds: 10
-      volumes:
+            periodSeconds: 10 # Ready 재확인 간격
+      volumes: # 파드에 붙일 저장소 목록
         - name: hf-cache
-          hostPath:
-            # GPU 서버에 받아 둔 가중치. 디렉터리가 없으면 파드 생성 실패.
-            path: /home/rocky/model/hf-cache
-            type: Directory
+          hostPath: # 노드의 파일 또는 디렉터리
+            path: /home/rocky/model/hf-cache # GPU 서버에 받아 둔 가중치 디렉터리
+            type: Directory # 디렉터리가 없으면 파드 생성 실패
         - name: shm
-          emptyDir:
-            medium: Memory
-            sizeLimit: 2Gi
+          emptyDir: # 파드가 끝나면 사라지는 임시 공간
+            medium: Memory # 디스크 대신 메모리로 공유 메모리 제공
+            sizeLimit: 2Gi # 공유 메모리 상한
 ---
-# 클러스터 안 이름 vllm.note.svc.cluster.local:8000 으로 파드 연결.
-apiVersion: v1
-kind: Service
-metadata:
-  name: vllm
+apiVersion: v1 # Service 코어 API
+kind: Service # 파드에 고정 이름을 붙이는 객체
+metadata: # 이름·라벨·소속
+  name: vllm # DNS 이름 vllm.note.svc.cluster.local
   namespace: note
-spec:
-  selector:
-    app: vllm
-  ports:
-    - port: 8000
-      targetPort: 8000
+spec: # 이 객체의 동작 정의
+  selector: # 대상 파드를 고르는 조건
+    app: vllm # 이 라벨 파드로 트래픽 전달
+  ports: # 수신 포트 목록
+    - port: 8000 # 서비스가 받는 포트
+      targetPort: 8000 # 파드 컨테이너 포트

@@ -1,36 +1,36 @@
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: react-note
-  namespace: note
-  annotations:
-    gitops-test: "1"
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: react-note
-  template:
-    metadata:
-      labels:
-        app: react-note
-    spec:
-      containers:
-        - name: react-note
-          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/react-note:2
-          ports:
-            - containerPort: 80
-      nodeSelector:
-        node-role.kubernetes.io/control-plane: "true"
+apiVersion: apps/v1 # Deployment API 그룹
+kind: Deployment # 프론트 파드를 유지하는 컨트롤러
+metadata: # 이름·라벨·소속
+  name: react-note # 디플로이먼트 이름
+  namespace: note # 소속 네임스페이스
+  annotations: # 스케줄과 무관한 부가 정보
+    gitops-test: "1" # 스케줄과 무관한 식별 표시
+spec: # 이 객체의 동작 정의
+  replicas: 1 # 유지할 파드 수
+  selector: # 대상 파드를 고르는 조건
+    matchLabels: # 라벨이 모두 같아야 선택
+      app: react-note # 이 라벨 파드만 관리
+  template: # 새로 만들 파드의 틀
+    metadata: # 이름·라벨·소속
+      labels: # 객체에 붙이는 표시
+        app: react-note # 새 파드 라벨. selector 와 일치
+    spec: # 이 객체의 동작 정의
+      containers: # 파드 안에서 실행할 컨테이너 목록
+        - name: react-note # 컨테이너 이름
+          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/react-note:2 # ECR 이미지와 태그
+          ports: # 수신 포트 목록
+            - containerPort: 80 # nginx 수신 포트
+      nodeSelector: # 배치할 노드 조건
+        node-role.kubernetes.io/control-plane: "true" # 앱 서버만 선택. GPU 서버 배치 방지
 ---
 apiVersion: v1
-kind: Service
-metadata:
-  name: react-note
+kind: Service # 파드에 고정 이름을 붙이는 객체
+metadata: # 이름·라벨·소속
+  name: react-note # DNS 이름 react-note.note.svc.cluster.local
   namespace: note
-spec:
-  selector:
-    app: react-note
-  ports:
-    - port: 80
-      targetPort: 80
+spec: # 이 객체의 동작 정의
+  selector: # 대상 파드를 고르는 조건
+    app: react-note # 이 라벨 파드로 트래픽 전달
+  ports: # 수신 포트 목록
+    - port: 80 # 서비스 포트
+      targetPort: 80 # 컨테이너 포트

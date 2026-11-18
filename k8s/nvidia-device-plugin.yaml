@@ -1,37 +1,37 @@
 apiVersion: apps/v1
-kind: DaemonSet
-metadata:
+kind: DaemonSet # 조건에 맞는 노드마다 파드 1개 유지
+metadata: # 이름·라벨·소속
   name: nvidia-device-plugin
   namespace: note
-spec:
-  selector:
-    matchLabels:
-      name: nvidia-device-plugin
-  template:
-    metadata:
-      labels:
+spec: # 이 객체의 동작 정의
+  selector: # 대상 파드를 고르는 조건
+    matchLabels: # 라벨이 모두 같아야 선택
+      name: nvidia-device-plugin # 이 라벨 파드만 관리
+  template: # 새로 만들 파드의 틀
+    metadata: # 이름·라벨·소속
+      labels: # 객체에 붙이는 표시
         name: nvidia-device-plugin
-    spec:
-      runtimeClassName: nvidia
-      nodeSelector:
-        gpu: l4
-      priorityClassName: system-node-critical
-      tolerations:
-        - key: nvidia.com/gpu
-          operator: Exists
-          effect: NoSchedule
-      containers:
+    spec: # 이 객체의 동작 정의
+      runtimeClassName: nvidia # GPU 런타임으로 실행
+      nodeSelector: # 배치할 노드 조건
+        gpu: l4 # GPU 서버만 선택. 앱 서버에는 미배치
+      priorityClassName: system-node-critical # 노드가 바빠도 먼저 스케줄
+      tolerations: # 노드 taint 가 있어도 배치 허용
+        - key: nvidia.com/gpu # 이 키의 taint 허용
+          operator: Exists # 값이 뭐든 키만 있으면 허용
+          effect: NoSchedule # NoSchedule taint 만 무시
+      containers: # 파드 안에서 실행할 컨테이너 목록
         - name: nvidia-device-plugin
-          image: nvcr.io/nvidia/k8s-device-plugin:v0.20.1
-          securityContext:
-            allowPrivilegeEscalation: false
-            capabilities:
-              drop: ["ALL"]
-          volumeMounts:
+          image: nvcr.io/nvidia/k8s-device-plugin:v0.20.1 # v0.20.2 는 이 레지스트리에 없음
+          securityContext: # 컨테이너 권한
+            allowPrivilegeEscalation: false # 프로세스 권한 상승 금지
+            capabilities: # 리눅스 권한 목록
+              drop: ["ALL"] # 리눅스 capability 전부 제거
+          volumeMounts: # 컨테이너 안에 연결할 경로
             - name: device-plugin
-              mountPath: /var/lib/kubelet/device-plugins
-      volumes:
+              mountPath: /var/lib/kubelet/device-plugins # kubelet 소켓을 컨테이너에 연결
+      volumes: # 파드에 붙일 저장소 목록
         - name: device-plugin
-          hostPath:
-            path: /var/lib/kubelet/device-plugins
-            type: DirectoryOrCreate
+          hostPath: # 노드의 파일 또는 디렉터리
+            path: /var/lib/kubelet/device-plugins # k3s kubelet 소켓이 있는 호스트 경로
+            type: DirectoryOrCreate # 없으면 디렉터리 생성

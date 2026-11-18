@@ -1,16 +1,14 @@
-# Let's Encrypt PRODUCTION (staging 성공 후 전환)
-# 적용 전: spec.acme.email 을 본인 이메일로 변경
 apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
-  name: letsencrypt-prod
-spec:
-  acme:
-    server: https://acme-v02.api.letsencrypt.org/directory
-    email: sk4cks@gmail.com
-    privateKeySecretRef:
-      name: letsencrypt-prod-account-key
-    solvers:
-      - http01:
-          ingress:
-            ingressClassName: traefik
+kind: ClusterIssuer # 클러스터 전체에서 쓰는 인증서 발급자
+metadata: # 이름·라벨·소속
+  name: letsencrypt-prod # Ingress 가 가리키는 이름
+spec: # 이 객체의 동작 정의
+  acme: # Let's Encrypt 계정 설정
+    server: https://acme-v02.api.letsencrypt.org/directory # 정식 발급 서버. 브라우저가 신뢰
+    email: sk4cks@gmail.com # 만료 안내 메일
+    privateKeySecretRef: # 계정 키를 저장할 Secret
+      name: letsencrypt-prod-account-key # ACME 계정 키 저장 Secret
+    solvers: # 도메인 소유 확인 방법
+      - http01: # HTTP 경로로 도메인 소유 확인
+          ingress: # 챌린지를 띄울 Ingress
+            ingressClassName: traefik # 챌린지를 Traefik Ingress 로 노출

@@ -1,109 +1,108 @@
 apiVersion: apps/v1
-kind: Deployment
-metadata:
+kind: Deployment # 인증 서버 파드를 유지하는 컨트롤러
+metadata: # 이름·라벨·소속
   name: auth-server
   namespace: note
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: auth-server
-  template:
-    metadata:
-      labels:
-        app: auth-server
-    spec:
-      containers:
+spec: # 이 객체의 동작 정의
+  replicas: 1 # 유지할 파드 수
+  selector: # 대상 파드를 고르는 조건
+    matchLabels: # 라벨이 모두 같아야 선택
+      app: auth-server # 이 라벨 파드만 관리
+  template: # 새로 만들 파드의 틀
+    metadata: # 이름·라벨·소속
+      labels: # 객체에 붙이는 표시
+        app: auth-server # 새 파드 라벨. selector 와 일치
+    spec: # 이 객체의 동작 정의
+      containers: # 파드 안에서 실행할 컨테이너 목록
         - name: auth-server
-          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/auth-server:1
-          ports:
-            - containerPort: 9000
-          env:
-            - name: SERVER_PORT
+          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/auth-server:1 # ECR 이미지와 태그
+          ports: # 수신 포트 목록
+            - containerPort: 9000 # 인증 서버 수신 포트
+          env: # 개별 환경변수 목록
+            - name: SERVER_PORT # 서버가 바인드할 포트
               value: "9000"
-            - name: SERVER_SERVLET_CONTEXT_PATH
+            - name: SERVER_SERVLET_CONTEXT_PATH # 서블릿 경로. issuer 와 API 의 Auth 주소 끝과 일치
               value: "/authorization-api"
-            - name: SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER
+            - name: SPRING_SECURITY_OAUTH2_AUTHORIZATIONSERVER_ISSUER # 토큰 iss. 브라우저에 보이는 Auth 주소
               value: "https://auth.52.78.20.70.nip.io"
-            - name: GOOGLE_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
-                  name: auth-server-google
-                  key: client-id
-            - name: GOOGLE_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
+            - name: GOOGLE_CLIENT_ID # Google OAuth 클라이언트 ID
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
+                  name: auth-server-google # 값을 가져올 Secret
+                  key: client-id # Secret 안의 키
+            - name: GOOGLE_CLIENT_SECRET # Google OAuth 시크릿
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: auth-server-google
                   key: client-secret
-            - name: KAKAO_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
+            - name: KAKAO_CLIENT_ID # 카카오 OAuth 클라이언트 ID
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: auth-server-kakao
                   key: client-id
             - name: KAKAO_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: auth-server-kakao
                   key: client-secret
-            - name: NAVER_CLIENT_ID
-              valueFrom:
-                secretKeyRef:
+            - name: NAVER_CLIENT_ID # 네이버 OAuth 클라이언트 ID
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: auth-server-naver
                   key: client-id
             - name: NAVER_CLIENT_SECRET
-              valueFrom:
-                secretKeyRef:
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: auth-server-naver
                   key: client-secret
-            - name: AUTH_INTERNAL_API_KEY
-              valueFrom:
-                configMapKeyRef:
+            - name: AUTH_INTERNAL_API_KEY # API ConfigMap 과 같은 내부 호출 키
+              valueFrom: # 값을 다른 객체에서 조회
+                configMapKeyRef: # ConfigMap 의 키를 값으로 사용
                   name: react-note-api-config
                   key: AUTH_INTERNAL_API_KEY
-            - name: SPRING_PROFILES_ACTIVE
+            - name: SPRING_PROFILES_ACTIVE # 사용할 Spring 프로필
               value: k8s
-            - name: SPRING_DATASOURCE_PASSWORD
-              valueFrom:
-                secretKeyRef:
+            - name: SPRING_DATASOURCE_PASSWORD # Postgres 비밀번호
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: postgres
                   key: POSTGRES_PASSWORD
-            # Mailcow EC2 (private): 172.31.0.203 / EIP 3.39.19.226
-            - name: MAIL_DOMAIN
+            - name: MAIL_DOMAIN # 가입 메일함 도메인
               value: "note.local"
-            - name: MAILCOW_ENABLED
+            - name: MAILCOW_ENABLED # true 면 가입 시 Mailcow 메일함 생성
               value: "true"
-            - name: MAILCOW_BASE_URL
+            - name: MAILCOW_BASE_URL # Mailcow API 주소. 메일 서버 사설 IP
               value: "https://172.31.0.203:8443"
-            - name: MAILCOW_IMAP_HOST
+            - name: MAILCOW_IMAP_HOST # 메일 읽기 서버
               value: "172.31.0.203"
-            - name: MAILCOW_SMTP_HOST
+            - name: MAILCOW_SMTP_HOST # 메일 보내기 서버
               value: "172.31.0.203"
-            - name: MAILCOW_API_KEY
-              valueFrom:
-                secretKeyRef:
+            - name: MAILCOW_API_KEY # Mailcow 관리 API 키
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: auth-server-mail
                   key: MAILCOW_API_KEY
-            - name: MAILBOX_PASSWORD_SECRET
-              valueFrom:
-                secretKeyRef:
+            - name: MAILBOX_PASSWORD_SECRET # 메일함 비밀번호 생성용 비밀
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: auth-server-mail
                   key: MAILBOX_PASSWORD_SECRET
-            - name: MAILBOX_PASSWORD_SALT
-              valueFrom:
-                secretKeyRef:
+            - name: MAILBOX_PASSWORD_SALT # 메일함 비밀번호 생성용 솔트
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: auth-server-mail
                   key: MAILBOX_PASSWORD_SALT
-      nodeSelector:
-        node-role.kubernetes.io/control-plane: "true"
+      nodeSelector: # 배치할 노드 조건
+        node-role.kubernetes.io/control-plane: "true" # 앱 서버만 선택
 ---
 apiVersion: v1
 kind: Service
-metadata:
-  name: auth-server
+metadata: # 이름·라벨·소속
+  name: auth-server # DNS 이름 auth-server.note.svc.cluster.local
   namespace: note
-spec:
-  selector:
-    app: auth-server
-  ports:
-    - port: 9000
-      targetPort: 9000
+spec: # 이 객체의 동작 정의
+  selector: # 대상 파드를 고르는 조건
+    app: auth-server # 이 라벨 파드로 트래픽 전달
+  ports: # 수신 포트 목록
+    - port: 9000 # 서비스 포트
+      targetPort: 9000 # 컨테이너 포트

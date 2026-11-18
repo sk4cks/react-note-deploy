@@ -1,113 +1,109 @@
-# PostgreSQL — Auth Server users 테이블 등 앱 DB (namespace: note)
-# Secret: k8s/postgres.secret.yaml (gitignore) — postgres.secret.yaml.example 참고
-# 클러스터 내부 접속: postgres.note.svc.cluster.local:5432
+# Auth 회원 등 앱 DB. Mailcow DB 와는 별개. 계정 값은 postgres Secret.
 apiVersion: v1
-kind: PersistentVolumeClaim
-metadata:
+kind: PersistentVolumeClaim # 디스크 요청
+metadata: # 이름·라벨·소속
   name: postgres-data
   namespace: note
-spec:
-  accessModes:
-    - ReadWriteOnce
-  storageClassName: local-path
-  resources:
-    requests:
-      storage: 5Gi
+spec: # 이 객체의 동작 정의
+  accessModes: # 디스크를 열고 쓰는 방식
+    - ReadWriteOnce # 노드 하나에서만 읽기/쓰기. local-path 는 그 노드에 고정
+  storageClassName: local-path # k3s 로컬 디스크 프로비저너
+  resources: # 자원 요청과 상한
+    requests: # 스케줄에 필요한 최소량
+      storage: 5Gi # 요청 용량
 ---
 apiVersion: apps/v1
 kind: Deployment
-metadata:
+metadata: # 이름·라벨·소속
   name: postgres
   namespace: note
-spec:
+spec: # 이 객체의 동작 정의
   replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
+  strategy: # 파드를 교체하는 방식
+    type: Recreate # 디스크를 두 파드가 동시에 못 잡아서 이전 파드 종료 후 생성
+  selector: # 대상 파드를 고르는 조건
+    matchLabels: # 라벨이 모두 같아야 선택
       app: postgres
-  template:
-    metadata:
-      labels:
+  template: # 새로 만들 파드의 틀
+    metadata: # 이름·라벨·소속
+      labels: # 객체에 붙이는 표시
         app: postgres
-    spec:
-      containers:
+    spec: # 이 객체의 동작 정의
+      containers: # 파드 안에서 실행할 컨테이너 목록
         - name: postgres
-          image: postgres:16-alpine
-          ports:
-            - containerPort: 5432
-          env:
-            - name: POSTGRES_USER
-              valueFrom:
-                secretKeyRef:
+          image: postgres:16-alpine # Postgres 16 경량 이미지
+          ports: # 수신 포트 목록
+            - containerPort: 5432 # DB 수신 포트
+          env: # 개별 환경변수 목록
+            - name: POSTGRES_USER # DB 사용자
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: postgres
                   key: POSTGRES_USER
-            - name: POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
+            - name: POSTGRES_PASSWORD # DB 비밀번호
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: postgres
                   key: POSTGRES_PASSWORD
-            - name: POSTGRES_DB
-              valueFrom:
-                secretKeyRef:
+            - name: POSTGRES_DB # 최초 생성할 DB 이름
+              valueFrom: # 값을 다른 객체에서 조회
+                secretKeyRef: # Secret 의 키를 값으로 사용
                   name: postgres
                   key: POSTGRES_DB
-            - name: PGDATA
+            - name: PGDATA # 데이터 파일을 마운트 하위 디렉터리에 저장
               value: /var/lib/postgresql/data/pgdata
-          volumeMounts:
+          volumeMounts: # 컨테이너 안에 연결할 경로
             - name: data
-              mountPath: /var/lib/postgresql/data
-          readinessProbe:
-            exec:
-              command:
+              mountPath: /var/lib/postgresql/data # 호스트 디스크를 컨테이너에 연결
+          readinessProbe: # 트래픽을 받아도 되는지 확인
+            exec: # 명령 실행으로 상태 확인
+              command: # Ready 판단 명령
                 - sh
                 - -c
                 - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            exec:
-              command:
+            initialDelaySeconds: 5 # 첫 확인 전 대기
+            periodSeconds: 10 # 확인 간격
+          livenessProbe: # 실패하면 컨테이너 재시작
+            exec: # 명령 실행으로 상태 확인
+              command: # 실패 시 컨테이너 재시작 판단 명령
                 - sh
                 - -c
                 - pg_isready -U "$POSTGRES_USER" -d "$POSTGRES_DB"
             initialDelaySeconds: 30
             periodSeconds: 20
-          resources:
-            requests:
-              memory: 256Mi
-              cpu: 100m
-            limits:
-              memory: 512Mi
-      volumes:
+          resources: # 자원 요청과 상한
+            requests: # 스케줄에 필요한 최소량
+              memory: 256Mi # 스케줄 최소 메모리
+              cpu: 100m # 스케줄 최소 CPU. 1000m = 1코어
+            limits: # 사용 상한
+              memory: 512Mi # 메모리 상한
+      volumes: # 파드에 붙일 저장소 목록
         - name: data
-          persistentVolumeClaim:
-            claimName: postgres-data
+          persistentVolumeClaim: # 요청해 둔 디스크 연결
+            claimName: postgres-data # 위에서 만든 PVC 이름
 ---
 apiVersion: v1
-kind: Service
-metadata:
-  name: postgres
+kind: Service # 클러스터 안 전용. 밖으로는 안 열림
+metadata: # 이름·라벨·소속
+  name: postgres # DNS 이름 postgres.note.svc.cluster.local
   namespace: note
-spec:
-  selector:
+spec: # 이 객체의 동작 정의
+  selector: # 대상 파드를 고르는 조건
     app: postgres
-  ports:
+  ports: # 수신 포트 목록
     - port: 5432
       targetPort: 5432
 ---
-# 외부(맥 DBeaver / 로컬 BFF) 직접 접속용. EC2 보안그룹에서 30432 를
-# 본인 IP 로만 열 것 (0.0.0.0/0 금지). 접속: EC2_PUBLIC_IP:30432
 apiVersion: v1
 kind: Service
-metadata:
-  name: postgres-external
+metadata: # 이름·라벨·소속
+  name: postgres-external # 맥 DBeaver 용. 보안 그룹 30432 는 본인 IP 만 허용
   namespace: note
-spec:
-  type: NodePort
-  selector:
+spec: # 이 객체의 동작 정의
+  type: NodePort # 노드 포트로 클러스터 밖 접속 허용
+  selector: # 대상 파드를 고르는 조건
     app: postgres
-  ports:
-    - port: 5432
-      targetPort: 5432
-      nodePort: 30432
+  ports: # 수신 포트 목록
+    - port: 5432 # 서비스 포트
+      targetPort: 5432 # 컨테이너 포트
+      nodePort: 30432 # 노드에 여는 포트

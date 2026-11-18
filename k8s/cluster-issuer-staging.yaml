@@ -1,16 +1,14 @@
-# Let's Encrypt STAGING (먼저 테스트 — rate limit 완화)
-# 적용 전: spec.acme.email 을 본인 이메일로 변경
 apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
-metadata:
+kind: ClusterIssuer # 테스트용 발급자. 브라우저가 신뢰하지 않음
+metadata: # 이름·라벨·소속
   name: letsencrypt-staging
-spec:
-  acme:
-    server: https://acme-staging-v02.api.letsencrypt.org/directory
+spec: # 이 객체의 동작 정의
+  acme: # Let's Encrypt 계정 설정
+    server: https://acme-staging-v02.api.letsencrypt.org/directory # 테스트 서버. 발급 횟수 제한이 느슨함
     email: sk4cks@gmail.com
-    privateKeySecretRef:
+    privateKeySecretRef: # 계정 키를 저장할 Secret
       name: letsencrypt-staging-account-key
-    solvers:
+    solvers: # 도메인 소유 확인 방법
       - http01:
-          ingress:
+          ingress: # 챌린지를 띄울 Ingress
             ingressClassName: traefik

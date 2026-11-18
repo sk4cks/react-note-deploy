@@ -1,50 +1,47 @@
-# Elastic IP + nip.io + HTTPS
-# 1) 아래 52.78.20.70 를 탄력적 IP로 교체 (예: 3.25.208.109)
-# 2) cert-manager ClusterIssuer 적용 후 이 파일 apply
-# 3) cert-manager.io/cluster-issuer: letsencrypt-prod (브라우저 신뢰용)
+# host 의 IP 는 앱 서버 탄력 IP.
 apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
+kind: Ingress # 외부 호스트 이름을 Service 로 연결
+metadata: # 이름·라벨·소속
   name: note-ingress
   namespace: note
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-spec:
-  tls:
-    - hosts:
+  annotations: # 스케줄과 무관한 부가 정보
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure # HTTP 와 HTTPS 엔트리포인트
+    cert-manager.io/cluster-issuer: letsencrypt-prod # 이 host 들로 인증서 발급
+spec: # 이 객체의 동작 정의
+  tls: # HTTPS 인증서를 붙일 호스트
+    - hosts: # 인증서에 넣을 호스트
         - app.52.78.20.70.nip.io
         - api.52.78.20.70.nip.io
         - auth.52.78.20.70.nip.io
-      secretName: note-tls
-  rules:
-    - host: app.52.78.20.70.nip.io
-      http:
-        paths:
+      secretName: note-tls # 발급된 인증서 저장 Secret
+  rules: # 호스트별 라우팅
+    - host: app.52.78.20.70.nip.io # 프론트 주소
+      http: # 이 호스트의 HTTP 라우팅
+        paths: # URL 경로별 목적지
+          - path: / # 이 경로 접두
+            pathType: Prefix # 하위 경로까지 포함
+            backend: # 실제로 받을 서비스
+              service: # 연결할 Service
+                name: react-note # 받을 Service
+                port: # 서비스 또는 컨테이너 포트
+                  number: 80 # Service 포트
+    - host: api.52.78.20.70.nip.io # API 주소
+      http: # 이 호스트의 HTTP 라우팅
+        paths: # URL 경로별 목적지
           - path: /
             pathType: Prefix
-            backend:
-              service:
-                name: react-note
-                port:
-                  number: 80
-    - host: api.52.78.20.70.nip.io
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
+            backend: # 실제로 받을 서비스
+              service: # 연결할 Service
                 name: react-note-api
-                port:
+                port: # 서비스 또는 컨테이너 포트
                   number: 8082
-    - host: auth.52.78.20.70.nip.io
-      http:
-        paths:
+    - host: auth.52.78.20.70.nip.io # 인증 서버 주소. /authorization-api 는 서버 컨텍스트가 처리
+      http: # 이 호스트의 HTTP 라우팅
+        paths: # URL 경로별 목적지
           - path: /
             pathType: Prefix
-            backend:
-              service:
+            backend: # 실제로 받을 서비스
+              service: # 연결할 Service
                 name: auth-server
-                port:
+                port: # 서비스 또는 컨테이너 포트
                   number: 9000

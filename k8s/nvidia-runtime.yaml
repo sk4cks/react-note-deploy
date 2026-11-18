@@ -1,5 +1,5 @@
-apiVersion: node.k8s.io/v1
-kind: RuntimeClass
-metadata:
-  name: nvidia
-handler: nvidia
+apiVersion: node.k8s.io/v1 # RuntimeClass API 그룹
+kind: RuntimeClass # 파드가 고를 컨테이너 런타임 종류
+metadata: # 이름·라벨·소속
+  name: nvidia # 파드 runtimeClassName 에 적는 이름
+handler: nvidia # containerd 에 등록된 nvidia 런타임 핸들러

@@ -1,20 +1,21 @@
+# 이 파일은 Argo 프로그램이 어느 노드에서 돌지는 정하지 않음.
 apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
+kind: Application # Git 경로를 클러스터에 맞추는 Argo 객체
+metadata: # 이름·라벨·소속
   name: note-app
-  namespace: argocd
-spec:
-  project: default
-  source:
-    repoURL: https://github.com/sk4cks/react-note-deploy.git
-    targetRevision: main
-    path: k8s
-  destination:
-    server: https://kubernetes.default.svc
-    namespace: note
-  syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-    syncOptions:
-      - CreateNamespace=true
+  namespace: argocd # Argo 가 설치된 네임스페이스
+spec: # 이 객체의 동작 정의
+  project: default # Argo 프로젝트. 허용 저장소·목적지를 묶는 단위
+  source: # 맞출 Git 원본
+    repoURL: https://github.com/sk4cks/react-note-deploy.git # 감시할 Git 주소
+    targetRevision: main # 감시할 브랜치
+    path: k8s # 이 폴더만 적용. jenkins/, argocd/ 는 제외
+  destination: # 적용할 클러스터와 네임스페이스
+    server: https://kubernetes.default.svc # 적용 대상 클러스터. 이 클러스터 자신
+    namespace: note # 리소스를 넣을 네임스페이스
+  syncPolicy: # 자동으로 맞추는 규칙
+    automated: # 사람 조작 없이 동기화
+      prune: true # Git 에서 지운 리소스는 클러스터에서도 삭제
+      selfHeal: true # 클러스터에서 직접 고친 값을 Git 내용으로 되돌림
+    syncOptions: # 동기화 추가 옵션
+      - CreateNamespace=true # note 네임스페이스가 없으면 생성

@@ -1,4 +1,4 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: note
+kind: Namespace # 리소스를 나누는 이름 공간
+metadata: # 이름·라벨·소속
+  name: note # 앱·DB·vLLM 이 들어가는 이름

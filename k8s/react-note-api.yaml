@@ -1,45 +1,45 @@
 apiVersion: apps/v1
-kind: Deployment
-metadata:
+kind: Deployment # API(BFF) 파드를 유지하는 컨트롤러
+metadata: # 이름·라벨·소속
   name: react-note-api
   namespace: note
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: react-note-api
-  template:
-    metadata:
-      labels:
-        app: react-note-api
-    spec:
-      containers:
+spec: # 이 객체의 동작 정의
+  replicas: 1 # 유지할 파드 수
+  selector: # 대상 파드를 고르는 조건
+    matchLabels: # 라벨이 모두 같아야 선택
+      app: react-note-api # 이 라벨 파드만 관리
+  template: # 새로 만들 파드의 틀
+    metadata: # 이름·라벨·소속
+      labels: # 객체에 붙이는 표시
+        app: react-note-api # 새 파드 라벨. selector 와 일치
+    spec: # 이 객체의 동작 정의
+      containers: # 파드 안에서 실행할 컨테이너 목록
         - name: react-note-api
-          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/react-note-api:3
-          ports:
-            - containerPort: 8082
-          envFrom:
+          image: 019511184889.dkr.ecr.ap-northeast-2.amazonaws.com/react-note-api:3 # ECR 이미지와 태그
+          ports: # 수신 포트 목록
+            - containerPort: 8082 # Spring 수신 포트
+          envFrom: # 다른 객체의 값을 환경변수로 한꺼번에 주입
             - configMapRef:
-                name: react-note-api-config
-          env:
-            - name: SPRING_PROFILES_ACTIVE
-              value: k8s
-            - name: MAIL_PROVIDER
-              valueFrom:
-                configMapKeyRef:
-                  name: react-note-api-config
-                  key: MAIL_PROVIDER
-      nodeSelector:
-        node-role.kubernetes.io/control-plane: "true"
+                name: react-note-api-config # ConfigMap 키 전체를 환경변수로 주입. 변경은 재시작 후 반영
+          env: # 개별 환경변수 목록
+            - name: SPRING_PROFILES_ACTIVE # 사용할 Spring 프로필 이름
+              value: k8s # application-k8s.yml 선택
+            - name: MAIL_PROVIDER # envFrom 과 키가 같으면 이 값이 우선
+              valueFrom: # 값을 다른 객체에서 조회
+                configMapKeyRef: # ConfigMap 의 키를 값으로 사용
+                  name: react-note-api-config # 값을 가져올 ConfigMap
+                  key: MAIL_PROVIDER # 그 안의 키
+      nodeSelector: # 배치할 노드 조건
+        node-role.kubernetes.io/control-plane: "true" # 앱 서버만 선택
 ---
 apiVersion: v1
 kind: Service
-metadata:
-  name: react-note-api
+metadata: # 이름·라벨·소속
+  name: react-note-api # DNS 이름 react-note-api.note.svc.cluster.local
   namespace: note
-spec:
-  selector:
-    app: react-note-api
-  ports:
-    - port: 8082
-      targetPort: 8082
+spec: # 이 객체의 동작 정의
+  selector: # 대상 파드를 고르는 조건
+    app: react-note-api # 이 라벨 파드로 트래픽 전달
+  ports: # 수신 포트 목록
+    - port: 8082 # 서비스 포트
+      targetPort: 8082 # 컨테이너 포트

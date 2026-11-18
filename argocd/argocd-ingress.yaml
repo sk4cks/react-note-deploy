@@ -1,25 +1,25 @@
-# Argo CD UI — nip.io + HTTPS (note-app Application 경로 밖, 수동/setup 스크립트용)
+# k8s/ 밖이라 note-app 이 자동 적용하지 않음.
 apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
+kind: Ingress # Argo 화면 주소를 Service 에 연결
+metadata: # 이름·라벨·소속
   name: argocd-server-ingress
   namespace: argocd
-  annotations:
-    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-spec:
-  tls:
+  annotations: # 스케줄과 무관한 부가 정보
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure # HTTP 와 HTTPS
+    cert-manager.io/cluster-issuer: letsencrypt-prod # 인증서 발급자
+spec: # 이 객체의 동작 정의
+  tls: # HTTPS 인증서를 붙일 호스트
     - hosts:
-        - argocd.52.78.20.70.nip.io
-      secretName: argocd-tls
-  rules:
+        - argocd.52.78.20.70.nip.io # 인증서에 넣을 호스트
+      secretName: argocd-tls # 인증서 저장 Secret
+  rules: # 호스트별 라우팅
     - host: argocd.52.78.20.70.nip.io
-      http:
-        paths:
+      http: # 이 호스트의 HTTP 라우팅
+        paths: # URL 경로별 목적지
           - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: argocd-server
-                port:
+            pathType: Prefix # 하위 경로까지 이 서비스로 전달
+            backend: # 실제로 받을 서비스
+              service: # 연결할 Service
+                name: argocd-server # Argo 설치가 만든 Service. 이 파일은 파드를 만들지 않음
+                port: # 서비스 또는 컨테이너 포트
                   number: 80

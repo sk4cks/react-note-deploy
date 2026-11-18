@@ -1,16 +1,13 @@
 apiVersion: v1
-kind: ConfigMap
-metadata:
+kind: ConfigMap # 비밀번호가 아닌 설정을 담는 객체. 변경은 파드 재시작 후 반영
+metadata: # 이름·라벨·소속
   name: react-note-api-config
   namespace: note
-data:
-  # base-url: BFF→Auth 서버 간 / public-url: 브라우저·Google redirect
-  AUTH_SERVER_BASE_URL: "http://auth-server.note.svc.cluster.local:9000/authorization-api"
-  AUTH_SERVER_PUBLIC_URL: "https://auth.52.78.20.70.nip.io/authorization-api"
-  AUTH_INTERNAL_API_KEY: "dev-internal-key"
-  # EC2 Mailcow IMAP (host Compose). Gmail 경로로 되돌리려면 gmail
-  MAIL_PROVIDER: "imap"
-  # AI 모델 관련. 끝에 /v1 을 붙이지 않음
-  AI_BASE_URL: "http://vllm.note.svc.cluster.local:8000"
-  AI_API_KEY: "local"
-  AI_MODEL: "Qwen/Qwen2.5-14B-Instruct-AWQ"
+data: # 이 객체에 넣을 내용
+  AUTH_SERVER_BASE_URL: "http://auth-server.note.svc.cluster.local:9000/authorization-api" # 클러스터 안에서 API 가 Auth 를 부르는 주소
+  AUTH_SERVER_PUBLIC_URL: "https://auth.52.78.20.70.nip.io/authorization-api" # 브라우저와 SNS redirect 에 보이는 주소
+  AUTH_INTERNAL_API_KEY: "dev-internal-key" # API 와 Auth 내부 호출 키. 브라우저로 나가지 않음
+  MAIL_PROVIDER: "imap" # imap 이면 Mailcow, gmail 이면 Gmail API
+  AI_BASE_URL: "http://vllm.note.svc.cluster.local:8000" # vLLM 주소. 끝에 /v1 없음. API 가 /v1/chat/completions 를 붙임
+  AI_API_KEY: "local" # vLLM --api-key 와 같은 값
+  AI_MODEL: "Qwen/Qwen2.5-14B-Instruct-AWQ" # 채팅에 지정할 모델 이름
