@@ -15,6 +15,8 @@ spec:
       labels:
         app: vllm
     spec:
+      # 서비스 이름 vllm 이 VLLM_PORT 에 tcp://주소 를 넣어 기동 실패. 환경변수 주입 끄기.
+      enableServiceLinks: false
       # nvidia 런타임으로 GPU 장치 연결.
       runtimeClassName: nvidia
       # gpu=l4 인 GPU 서버만 선택.
